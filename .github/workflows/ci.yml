@@ -1,4 +1,4 @@
-name: CI
+name: FrogStatus CI Build
 
 on:
   push:

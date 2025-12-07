@@ -28,15 +28,21 @@ body {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
 }
 
 .panels {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-template-columns: 1fr 2fr 1fr;
   gap: 1.5rem;
+}
+
+@media (max-width: 1200px) {
+  .panels {
+    grid-template-columns: 1fr;
+  }
 }
 
 .panel {
@@ -44,6 +50,7 @@ body {
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-width: 0;
 }
 
 .panel h2 {
@@ -80,9 +87,16 @@ body {
   font-family: 'Courier New', monospace;
 }
 
+.table-wrapper {
+  overflow-x: auto;
+  margin: -0.5rem;
+  padding: 0.5rem;
+}
+
 .deps-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 500px;
 }
 
 .deps-table th {
@@ -92,11 +106,21 @@ body {
   font-weight: 600;
   color: #666;
   border-bottom: 2px solid #ddd;
+  white-space: nowrap;
 }
 
 .deps-table td {
   padding: 0.75rem;
   border-bottom: 1px solid #eee;
+}
+
+.deps-table td:first-child {
+  font-weight: 600;
+}
+
+.deps-table td:nth-child(2) {
+  font-family: 'Courier New', monospace;
+  color: #666;
 }
 
 .deps-table tr:last-child td {
@@ -125,6 +149,63 @@ body {
 .status-badge.unknown {
   background-color: #fff3cd;
   color: #856404;
+}
+
+.status-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.severity-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.severity-badge.severity-critical {
+  background-color: #dc3545;
+  color: white;
+}
+
+.severity-badge.severity-high {
+  background-color: #fd7e14;
+  color: white;
+}
+
+.severity-badge.severity-medium {
+  background-color: #ffc107;
+  color: #333;
+}
+
+.severity-badge.severity-low {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.cve-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.cve-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background-color: #e9ecef;
+  color: #495057;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: 'Courier New', monospace;
+}
+
+.no-cves {
+  color: #999;
+  font-style: italic;
 }
 
 .loading {

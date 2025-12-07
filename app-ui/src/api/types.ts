@@ -9,5 +9,7 @@ export interface BuildInfo {
 export interface Dependency {
   name: string;
   version: string;
-  status: string;
+  status: 'ok' | 'vulnerable' | 'unknown';
+  cves?: string[];
+  severity?: string;
 }

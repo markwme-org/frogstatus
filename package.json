@@ -11,7 +11,13 @@
     "dev": "npm run dev --workspace=app-api & npm run dev --workspace=app-ui",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "set-deps-state": "tsx scripts/set-deps-state.ts",
+    "set-vulnerable": "npm run set-deps-state vulnerable",
+    "set-clean": "npm run set-deps-state clean"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0"
   },
   "engines": {
     "node": ">=22.0.0"

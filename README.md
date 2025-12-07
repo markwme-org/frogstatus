@@ -93,6 +93,65 @@ This creates:
 - `app-api/dist/` - Compiled TypeScript API
 - `app-ui/dist/` - Production-optimized UI bundle
 
+## Vulnerability States (For JFrog Demos)
+
+FrogStatus supports two dependency states for demonstrating JFrog security features:
+
+### Vulnerable State
+
+Contains intentionally vulnerable dependencies and insecure code patterns:
+
+```bash
+npm run set-vulnerable
+```
+
+**Vulnerable Dependencies:**
+- lodash 4.17.19 - CVE-2020-8203 (Prototype pollution)
+- axios 0.21.1 - CVE-2021-3749 (SSRF)
+- jsonwebtoken 8.5.1 - Multiple JWT bypass CVEs
+- node-forge 0.10.0 - Cryptographic vulnerabilities
+- express 4.17.1 - CVE-2022-24999 (Open redirect)
+
+**Vulnerable Code Patterns** (app-api/src/routes/vulnerable.ts):
+- Hardcoded credentials
+- Command injection
+- Path traversal
+- SQL injection
+- Insecure cryptography
+- Regex DoS
+- Secrets exposure
+
+### Clean State
+
+Uses secure, up-to-date dependencies:
+
+```bash
+npm run set-clean
+```
+
+All known CVEs are resolved with updated package versions.
+
+### Demo Usage
+
+```bash
+# Start with vulnerable state
+npm run set-vulnerable
+npm test  # Tests still pass!
+npm run dev  # See vulnerabilities in UI
+
+# Scan with JFrog IDE tools
+# Push to trigger CI/CD with JFrog Xray
+
+# Fix by switching to clean state
+npm run set-clean
+npm test  # Verify everything works
+npm run dev  # See clean dependencies
+
+# Push clean version
+```
+
+**See [DEMO-GUIDE.md](./DEMO-GUIDE.md) for complete demo workflows and FrogBot integration.**
+
 ## API Endpoints
 
 ### GET /api/health

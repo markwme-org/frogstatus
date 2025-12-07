@@ -1,28 +1,16 @@
 import { Router } from 'express';
+import { getDependencies } from '../services/dependencyService.js';
 
 const router = Router();
 
-interface Dependency {
-  name: string;
-  version: string;
-  status: string;
-}
-
 router.get('/dependencies', (req, res) => {
-  const dependencies: Dependency[] = [
-    {
-      name: 'lodash',
-      version: '4.17.21',
-      status: 'ok',
-    },
-    {
-      name: 'jsonwebtoken',
-      version: '9.0.0',
-      status: 'ok',
-    },
-  ];
-
-  res.json(dependencies);
+  try {
+    const dependencies = getDependencies();
+    res.json(dependencies);
+  } catch (error) {
+    console.error('Error fetching dependencies:', error);
+    res.status(500).json({ error: 'Failed to fetch dependencies' });
+  }
 });
 
 export default router;

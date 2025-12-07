@@ -34,28 +34,52 @@ export function DependencyPanel({ dependencies, loading, error }: DependencyPane
   return (
     <div className="panel">
       <h2>Dependency Health</h2>
-      <table className="deps-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Version</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {dependencies.map((dep) => (
-            <tr key={dep.name}>
-              <td>{dep.name}</td>
-              <td>{dep.version}</td>
-              <td>
-                <span className={`status-badge ${getStatusClass(dep.status)}`}>
-                  {dep.status}
-                </span>
-              </td>
+      <div className="table-wrapper">
+        <table className="deps-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Version</th>
+              <th>Status</th>
+              <th>Details</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {dependencies.map((dep) => (
+              <tr key={dep.name}>
+                <td>{dep.name}</td>
+                <td>{dep.version}</td>
+                <td>
+                  <div className="status-cell">
+                    <span className={`status-badge ${getStatusClass(dep.status)}`}>
+                      {dep.status}
+                    </span>
+                    {dep.severity && (
+                      <span className={`severity-badge severity-${dep.severity.toLowerCase()}`}>
+                        {dep.severity}
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td>
+                  {dep.cves && dep.cves.length > 0 ? (
+                    <div className="cve-list">
+                      {dep.cves.slice(0, 2).map((cve) => (
+                        <span key={cve} className="cve-badge">{cve}</span>
+                      ))}
+                      {dep.cves.length > 2 && (
+                        <span className="cve-badge">+{dep.cves.length - 2} more</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="no-cves">-</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

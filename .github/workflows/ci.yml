@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+
+      # TODO: Add JFrog CLI setup
+      # - name: Setup JFrog CLI
+      #   uses: jfrog/setup-jfrog-cli@v3
+      #   env:
+      #     JF_URL: ${{ secrets.JF_URL }}
+      #     JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+
+      # TODO: Collect build environment info
+      # - name: Collect build environment
+      #   run: jf rt build-collect-env frogstatus ${{ github.run_number }}
+
+      # TODO: Add git information to build
+      # - name: Add git info to build
+      #   run: jf rt build-add-git frogstatus ${{ github.run_number }}
+
+      # TODO: Publish build info to Artifactory
+      # - name: Publish build info
+      #   run: jf rt build-publish frogstatus ${{ github.run_number }}
+
+      # TODO: Scan build with Xray
+      # - name: Scan build with Xray
+      #   run: jf build-scan frogstatus ${{ github.run_number }}
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -f infra/Dockerfile -t frogstatus:${{ github.sha }} .
+
+      # TODO: Push Docker image to Artifactory
+      # - name: Push to Artifactory
+      #   run: |
+      #     docker tag frogstatus:${{ github.sha }} ${{ secrets.ARTIFACTORY_REGISTRY }}/frogstatus:${{ github.sha }}
+      #     docker push ${{ secrets.ARTIFACTORY_REGISTRY }}/frogstatus:${{ github.sha }}
+
+      # TODO: Scan Docker image with Xray
+      # - name: Scan Docker image
+      #   run: jf docker scan ${{ secrets.ARTIFACTORY_REGISTRY }}/frogstatus:${{ github.sha }}

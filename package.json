@@ -1,0 +1,19 @@
+{
+  "name": "frogstatus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FrogStatus - JFrog demo application",
+  "workspaces": [
+    "app-api",
+    "app-ui"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=app-api & npm run dev --workspace=app-ui",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

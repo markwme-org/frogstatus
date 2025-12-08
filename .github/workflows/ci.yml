@@ -46,6 +46,44 @@ jobs:
           jf -v
           jf rt ping
 
+      - name: Check Xray Index
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+        run: |
+          # Install jq if not already present (safe on ubuntu-latest)
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
+          # Derive XRAY_SERVER_ID from JF_URL
+          # Strip protocol
+          NO_PROTO="${JF_URL#https://}"
+          # Take everything before the first dot
+          XRAY_SERVER_ID="${NO_PROTO%%.*}"
+
+          echo "Derived XRAY_SERVER_ID: ${XRAY_SERVER_ID}"
+          echo "Build name: ${JFROG_CLI_BUILD_NAME}"
+          echo "Project key: ${JFROG_CLI_BUILD_PROJECT}"
+          echo "Checking Xray indexing for build '${JFROG_CLI_BUILD_NAME}' in project '${JFROG_CLI_BUILD_PROJECT}' (server='${XRAY_SERVER_ID}')"
+
+          # Fetch current indexing configuration for this server + project
+          INDEXING_JSON=$(jf xr curl "api/v1/binMgr/${XRAY_SERVER_ID}/builds?projectKey=${JFROG_CLI_BUILD_PROJECT}")
+          # Check if BUILD_NAME is present in indexed_builds
+          if echo "$INDEXING_JSON" \
+              | jq -e --arg name "$JFROG_CLI_BUILD_NAME" '(.indexed_builds // []) | index($name)' >/dev/null; then
+            echo "Build '${JFROG_CLI_BUILD_NAME}' is already indexed in Xray for project '${JFROG_CLI_BUILD_PROJECT}'."
+          else
+            echo "Build '${JFROG_CLI_BUILD_NAME}' is NOT indexed. Adding it now..."
+            printf '{"names":["%s"]}\n' "$JFROG_CLI_BUILD_NAME" > build-index.json
+            jf xr curl \
+              -X POST \
+              "api/v1/binMgr/builds?projectKey=${JFROG_CLI_BUILD_PROJECT}" \
+              -H "Content-Type: application/json" \
+              -d @build-index.json \
+              -sS
+          fi
+
       - name: Install dependencies
         env: 
           JF_NPM_REPOSITORY: ${{ vars.JF_NPM_REPOSITORY }}

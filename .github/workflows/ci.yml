@@ -42,7 +42,7 @@ jobs:
           JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check JFrog Artifactory connection
-      - run: |
+        run: |
           echo "Pinging JFrog Artifactory instance"
           jf -v
           jf rt ping

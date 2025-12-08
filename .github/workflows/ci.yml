@@ -47,7 +47,11 @@ jobs:
           jf rt ping
 
       - name: Install dependencies
-        run: jf npm install
+        env: 
+          JF_NPM_REPOSITORY = ${{ vars.JF_NPM_REPOSITORY }}
+        run: |
+          jf npmc --global=true --repo-resolve "$JF_NPM_REPOSITORY" 
+          jf npm install
 
       - name: Run tests
         run: npm test

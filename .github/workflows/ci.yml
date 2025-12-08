@@ -13,6 +13,7 @@ jobs:
     permissions:
       contents: read
       id-token: write  # Required for OIDC authentication with JFrog
+      # security-events: write # needed?
 
     strategy:
       matrix:
@@ -20,22 +21,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run tests
-        run: npm test
-
-      - name: Build application
-        run: npm run build
 
       - name: Setup JFrog command line tool
         id: jfcli-setup
@@ -53,6 +45,16 @@ jobs:
           echo "Pinging JFrog Artifactory instance"
           jf -v
           jf rt ping
+
+      - name: Install dependencies
+        run: jf npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+
       
 
       # TODO: Collect build environment info

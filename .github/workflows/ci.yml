@@ -90,10 +90,38 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Build Docker image
-        run: docker build -f infra/Dockerfile -t frogstatus:${{ github.sha }} .
+
+      # Setup Docker build tag
+      - name: Build Docker image tag
+        id: build-docker-tag
+        run: |
+          JF_URL="${{ vars.JF_URL }}"
+          JF_DOCKER_REPOSITORY="${{ vars.JF_DOCKER_REPOSITORY }}"
+          
+          # Strip https:// if present
+          JF_URL="${JF_URL#https://}"
+          JF_URL="${JF_URL#http://}"
+          
+          # Strip trailing slash if present
+          JF_URL="${JF_URL%/}"
+
+          # Construct the base
+          DOCKER_TAG="${JF_URL}/${JF_DOCKER_REPOSITORY}/frogstatus:${{ github.sha }}"
+
+          # Construct and output tags
+          echo "docker-tag=${DOCKER_TAG}" >> $GITHUB_OUTPUT
+          
+          echo "docker-tag: ${DOCKER_TAG}"
+        
+      - name: Build and push Docker image
+        run: |
+          jf docker build -f infra/Dockerfile -t ${{ steps.build-docker-tag.outputs.docker-tag}} .
+          jf docker push ${{ steps.build-docker-tag.outputs.docker-tag}}
+
+      - name: Scan Docker image
+        run: jf docker scan ${{ steps.build-docker-tag.outputs.docker-tag}}
 
       # TODO: Push Docker image to Artifactory
       # - name: Push to Artifactory

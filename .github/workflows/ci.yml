@@ -83,6 +83,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Check JFrog Artifactory connection
+        uses: ./.github/actions/setup-jfrog-cli
+      - run: |
+          echo "Pinging JFrog Artifactory instance"
+          jf -v
+          jf rt ping
 
       # Setup Docker build tag
       - name: Build Docker image tag

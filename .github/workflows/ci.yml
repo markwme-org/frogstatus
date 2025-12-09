@@ -94,8 +94,8 @@ jobs:
           JF_URL="${JF_URL%/}"
 
           # Construct the base
-          DOCKER_TAG_FULL="${JF_URL}/${JF_DOCKER_REPOSITORY}/frogstatus:${{ github.sha }}"
-          DOCKER_TAG_SHORT="${JF_URL}/${JF_DOCKER_REPOSITORY}/frogstatus:${{ github.sha::7 }}"
+          DOCKER_TAG_FULL="${JF_URL}/${JF_DOCKER_REPOSITORY}/frogstatus:${GITHUB_SHA}"
+          DOCKER_TAG_SHORT="${JF_URL}/${JF_DOCKER_REPOSITORY}/frogstatus:${GITHUB_SHA::7}"
           DOCKER_TAG_LATEST="${JF_URL}/${JF_DOCKER_REPOSITORY}/frogstatus:latest"
 
           # Construct and output tags

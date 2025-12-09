@@ -7,50 +7,36 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write  # Required for OIDC authentication with JFrog
+  # security-events: write # needed?
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      id-token: write  # Required for OIDC authentication with JFrog
-      # security-events: write # needed?
-
-    strategy:
-      matrix:
-        node-version: [22.x]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js 22.x
         uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
-
-      - name: Setup JFrog command line tool
-        id: jfcli-setup
-        uses: jfrog/setup-jfrog-cli@v4
-        with:
-          version: latest
-          oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER }}
-          oidc-audience: ${{ vars.JF_URL }}
-        env:
-          JF_URL: ${{ vars.JF_URL }}
-          JF_PROJECT: ${{ vars.JF_PROJECT_KEY}}
-          JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          node-version: 22.x
 
       - name: Check JFrog Artifactory connection
-        run: |
+        uses: ./.github/actions/setup-jfrog-cli
+      - run: |
           echo "Pinging JFrog Artifactory instance"
           jf -v
           jf rt ping
 
       - name: Install dependencies
+        uses: ./.github/actions/setup-jfrog-cli
         env: 
           JF_NPM_REPOSITORY: ${{ vars.JF_NPM_REPOSITORY }}
-        run: |
+      - run: |
           jf npmc --global=true --repo-resolve "$JF_NPM_REPOSITORY" 
           jf npm install --module frogstatusmod
 
@@ -108,16 +94,25 @@ jobs:
           JF_URL="${JF_URL%/}"
 
           # Construct the base
-          DOCKER_TAG="${JF_URL}/${JF_DOCKER_REPOSITORY}/frogstatus:${{ github.sha }}"
+          DOCKER_TAG_FULL="${JF_URL}/${JF_DOCKER_REPOSITORY}/frogstatus:${{ github.sha }}"
+          DOCKER_TAG_SHORT="${JF_URL}/${JF_DOCKER_REPOSITORY}/frogstatus:${{ github.sha::7 }}"
+          DOCKER_TAG_LATEST="${JF_URL}/${JF_DOCKER_REPOSITORY}/frogstatus:latest"
 
           # Construct and output tags
-          echo "docker-tag=${DOCKER_TAG}" >> $GITHUB_OUTPUT
+          echo "docker-tag-full=${DOCKER_TAG_FULL}" >> $GITHUB_OUTPUT
+          echo "docker-tag-short=${DOCKER_TAG_SHORT}" >> $GITHUB_OUTPUT
+          echo "docker-tag-latest=${DOCKER_TAG_LATEST}" >> $GITHUB_OUTPUT
           
-          echo "docker-tag: ${DOCKER_TAG}"
+          echo "docker-tag: ${DOCKER_TAG_FULL}"
+          echo "docker-tag (short): ${DOCKER_TAG_SHORT}"
+          echo "docker-tag (latest): ${DOCKER_TAG_LATEST}"
         
       - name: Build and push Docker image
         run: |
-          jf docker build -f infra/Dockerfile -t ${{ steps.build-docker-tag.outputs.docker-tag}} .
+          jf docker build -f infra/Dockerfile -t frogstatus:${{github.sha}} .
+          jf docker tag frogstatus:${{github.sha}} ${{ steps.build-docker-tag.outputs.docker-tag-full}}
+          jf docker tag frogstatus:${{github.sha}} ${{ steps.build-docker-tag.outputs.docker-tag-short}}
+          jf docker tag frogstatus:${{github.sha}} ${{ steps.build-docker-tag.outputs.docker-tag-latest}}
           jf docker push ${{ steps.build-docker-tag.outputs.docker-tag}}
 
       - name: Scan Docker image

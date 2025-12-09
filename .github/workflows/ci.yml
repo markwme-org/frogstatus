@@ -120,11 +120,20 @@ jobs:
         
       - name: Build and push Docker image
         run: |
+          echo Building frogstatus:${GITHUB_SHA}
           jf docker build -f infra/Dockerfile -t frogstatus:${{github.sha}} .
+          echo Tagging "${{ steps.build-docker-tag.outputs.docker-tag-full}}"
           jf docker tag frogstatus:${{github.sha}} ${{ steps.build-docker-tag.outputs.docker-tag-full}}
+          echo Tagging "${{ steps.build-docker-tag.outputs.docker-tag-short}}"
           jf docker tag frogstatus:${{github.sha}} ${{ steps.build-docker-tag.outputs.docker-tag-short}}
+          echo Tagging "${{ steps.build-docker-tag.outputs.docker-tag-latest}}"
           jf docker tag frogstatus:${{github.sha}} ${{ steps.build-docker-tag.outputs.docker-tag-latest}}
-          jf docker push ${{ steps.build-docker-tag.outputs.docker-tag}}
+          echo Pushing "${{ steps.build-docker-tag.outputs.docker-tag-full}}"
+          jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-full}}
+          echo Pushing "${{ steps.build-docker-tag.outputs.docker-tag-short}}"
+          jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-full}}
+          echo Pushing "${{ steps.build-docker-tag.outputs.docker-tag-latest}}"
+          jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-full}}
 
       - name: Scan Docker image
         run: jf docker scan ${{ steps.build-docker-tag.outputs.docker-tag}}

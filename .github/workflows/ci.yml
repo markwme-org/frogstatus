@@ -53,27 +53,11 @@ jobs:
 
       - name: Xray scan build-info
         run: |
-          jf rt build-collect-env
-          jf rt build-add-git
-          jf rt build-publish
+          # jf rt build-collect-env
+          # jf rt build-add-git
+          # jf rt build-publish
           echo "Scanning build: $JFROG_CLI_BUILD_NAME #$JFROG_CLI_BUILD_NUMBER"
           jf build-scan "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" --fail=false          
-  
-      # TODO: Collect build environment info
-      # - name: Collect build environment
-      #   run: jf rt build-collect-env frogstatus ${{ github.run_number }}
-
-      # TODO: Add git information to build
-      # - name: Add git info to build
-      #   run: jf rt build-add-git frogstatus ${{ github.run_number }}
-
-      # TODO: Publish build info to Artifactory
-      # - name: Publish build info
-      #   run: jf rt build-publish frogstatus ${{ github.run_number }}
-
-      # TODO: Scan build with Xray
-      # - name: Scan build with Xray
-      #   run: jf build-scan frogstatus ${{ github.run_number }}
 
   docker-build:
     runs-on: ubuntu-latest
@@ -131,12 +115,12 @@ jobs:
           echo Pushing "${{ steps.build-docker-tag.outputs.docker-tag-full}}"
           jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-full}}
           echo Pushing "${{ steps.build-docker-tag.outputs.docker-tag-short}}"
-          jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-full}}
+          jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-short}}
           echo Pushing "${{ steps.build-docker-tag.outputs.docker-tag-latest}}"
-          jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-full}}
+          jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-latest}}
 
       - name: Scan Docker image
-        run: jf docker scan ${{ steps.build-docker-tag.outputs.docker-tag}}
+        run: jf docker scan frogstatus:${{github.sha}}
 
       # TODO: Push Docker image to Artifactory
       # - name: Push to Artifactory

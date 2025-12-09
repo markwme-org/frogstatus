@@ -12,6 +12,12 @@ permissions:
   id-token: write  # Required for OIDC authentication with JFrog
   # security-events: write # needed?
 
+env:
+  JF_URL: ${{ vars.JF_URL }}
+  JF_OIDC_PROVIDER: ${{ vars.JF_OIDC_PROVIDER }}
+  JF_PROJECT: ${{ vars.JF_PROJECT_KEY}}
+  JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -33,10 +39,9 @@ jobs:
           jf rt ping
 
       - name: Install dependencies
-        uses: ./.github/actions/setup-jfrog-cli
         env: 
           JF_NPM_REPOSITORY: ${{ vars.JF_NPM_REPOSITORY }}
-      - run: |
+        run: |
           jf npmc --global=true --repo-resolve "$JF_NPM_REPOSITORY" 
           jf npm install --module frogstatusmod
 

@@ -5,9 +5,5 @@ runs:
     - uses: jfrog/setup-jfrog-cli@v4
       with:
         version: latest
-        oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER }}
-        oidc-audience: ${{ vars.JF_URL }}
-      env:
-        JF_URL: ${{ vars.JF_URL }}
-        JF_PROJECT: ${{ vars.JF_PROJECT_KEY}}
-        JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        oidc-provider-name: ${{ env.JF_OIDC_PROVIDER }}
+        oidc-audience: ${{ env.JF_URL }}

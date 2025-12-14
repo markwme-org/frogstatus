@@ -34,3 +34,6 @@ coverage/
 # Misc
 .cache/
 .current-state
+
+# JFrog CLI
+.jfrog/

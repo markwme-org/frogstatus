@@ -49,15 +49,17 @@ ARG JF_NPM_REPOSITORY
 # Copy package files and install production dependencies only
 COPY package.json package-lock.json* ./
 COPY app-api/package.json ./app-api/
+COPY app-ui/package.json ./app-ui/
 
 # Configure JFrog CLI for npm and install production dependencies
+# Note: jf npm doesn't support --workspace flag, so we install all production deps
 RUN if [ -n "$JF_URL" ] && [ -n "$JF_NPM_REPOSITORY" ]; then \
         jf config add jfrog-server --url="$JF_URL" --interactive=false && \
         jf npmc --global=true --repo-resolve="$JF_NPM_REPOSITORY" && \
-        jf npm install --workspace=app-api --omit=dev; \
+        jf npm install --omit=dev; \
     else \
         echo "registry=https://registry.npmjs.org/" > .npmrc && \
-        npm install --workspace=app-api --omit=dev; \
+        npm install --omit=dev; \
     fi
 
 # Copy built artifacts and server

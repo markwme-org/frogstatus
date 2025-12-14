@@ -3,16 +3,29 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Install JFrog CLI
+RUN apk add --no-cache curl && \
+    curl -fL https://install-cli.jfrog.io | sh && \
+    mv jf /usr/local/bin/jf
+
+# Accept JFrog server URL and npm repository as build args
+ARG JF_URL
+ARG JF_NPM_REPOSITORY
+
 # Copy package files
 COPY package.json package-lock.json* ./
 COPY app-api/package.json ./app-api/
 COPY app-ui/package.json ./app-ui/
 
-# Force npm to use public registry (avoid JFrog auth issues in CI)
-RUN echo "registry=https://registry.npmjs.org/" > .npmrc
-
-# Install dependencies
-RUN npm install
+# Configure JFrog CLI for npm (anonymous access to remote repository)
+RUN if [ -n "$JF_URL" ] && [ -n "$JF_NPM_REPOSITORY" ]; then \
+        jf config add jfrog-server --url="$JF_URL" --interactive=false && \
+        jf npmc --global=true --repo-resolve="$JF_NPM_REPOSITORY" && \
+        jf npm install; \
+    else \
+        echo "registry=https://registry.npmjs.org/" > .npmrc && \
+        npm install; \
+    fi
 
 # Copy source code
 COPY app-api ./app-api
@@ -26,15 +39,28 @@ FROM node:22-alpine
 
 WORKDIR /app
 
+# Install JFrog CLI
+RUN apk add --no-cache curl && \
+    curl -fL https://install-cli.jfrog.io | sh && \
+    mv jf /usr/local/bin/jf
+
+# Accept JFrog server URL and npm repository as build args
+ARG JF_URL
+ARG JF_NPM_REPOSITORY
+
 # Copy package files and install production dependencies only
 COPY package.json package-lock.json* ./
 COPY app-api/package.json ./app-api/
 
-# Force npm to use public registry (avoid JFrog auth issues in CI)
-RUN echo "registry=https://registry.npmjs.org/" > .npmrc
-
-# Install only API production dependencies
-RUN npm install --workspace=app-api --omit=dev
+# Configure JFrog CLI for npm and install production dependencies
+RUN if [ -n "$JF_URL" ] && [ -n "$JF_NPM_REPOSITORY" ]; then \
+        jf config add jfrog-server --url="$JF_URL" --interactive=false && \
+        jf npmc --global=true --repo-resolve="$JF_NPM_REPOSITORY" && \
+        jf npm install --workspace=app-api --omit=dev; \
+    else \
+        echo "registry=https://registry.npmjs.org/" > .npmrc && \
+        npm install --workspace=app-api --omit=dev; \
+    fi
 
 # Copy built artifacts and server
 COPY --from=builder /app/app-api/dist ./app-api/dist

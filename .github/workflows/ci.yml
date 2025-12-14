@@ -95,9 +95,14 @@ jobs:
           echo "docker-tag (latest): ${DOCKER_TAG_LATEST}"
         
       - name: Build and push Docker image
+        env:
+          JF_NPM_REPOSITORY: ${{ vars.JF_NPM_REPOSITORY }}
         run: |
           echo Building frogstatus:${GITHUB_SHA}
-          jf docker build -f infra/Dockerfile -t frogstatus:${{github.sha}} .
+          jf docker build -f infra/Dockerfile \
+            --build-arg JF_URL="${{ vars.JF_URL }}" \
+            --build-arg JF_NPM_REPOSITORY="${JF_NPM_REPOSITORY}" \
+            -t frogstatus:${{github.sha}} .
           echo Tagging "${{ steps.build-docker-tag.outputs.docker-tag-full}}"
           jf docker tag frogstatus:${{github.sha}} ${{ steps.build-docker-tag.outputs.docker-tag-full}}
           echo Tagging "${{ steps.build-docker-tag.outputs.docker-tag-short}}"

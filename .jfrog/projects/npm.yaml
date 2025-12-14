@@ -1,0 +1,8 @@
+version: 1
+type: npm
+resolver:
+    repo: mwfs-npm-dev
+    serverId: solengeu
+deployer:
+    repo: mwfs-docker-dev
+    serverId: solengeu

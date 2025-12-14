@@ -37,4 +37,3 @@ coverage/
 
 # JFrog CLI
 .jfrog/
-.npmrc

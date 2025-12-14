@@ -97,15 +97,15 @@ jobs:
       - name: Build and push Docker image
         env:
           JF_NPM_REPOSITORY: ${{ vars.JF_NPM_REPOSITORY }}
+          DOCKER_BUILDKIT: 1
         run: |
-          # Export JFrog access token from CLI config for Docker build
-          JF_ACCESS_TOKEN=$(jf config show | grep "Access token" | awk '{print $3}')
-
           echo Building frogstatus:${GITHUB_SHA}
+
+          # Use BuildKit secrets to pass JFrog CLI config into the build
           jf docker build -f infra/Dockerfile \
             --build-arg JF_URL="${{ vars.JF_URL }}" \
             --build-arg JF_NPM_REPOSITORY="${JF_NPM_REPOSITORY}" \
-            --build-arg JF_ACCESS_TOKEN="${JF_ACCESS_TOKEN}" \
+            --secret id=jfrog_config,src=$HOME/.jfrog/jfrog-cli.conf.v6 \
             -t frogstatus:${{github.sha}} .
           echo Tagging "${{ steps.build-docker-tag.outputs.docker-tag-full}}"
           jf docker tag frogstatus:${{github.sha}} ${{ steps.build-docker-tag.outputs.docker-tag-full}}

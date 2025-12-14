@@ -8,6 +8,9 @@ COPY package.json package-lock.json* ./
 COPY app-api/package.json ./app-api/
 COPY app-ui/package.json ./app-ui/
 
+# Force npm to use public registry (avoid JFrog auth issues in CI)
+RUN echo "registry=https://registry.npmjs.org/" > .npmrc
+
 # Install dependencies
 RUN npm install
 
@@ -26,6 +29,9 @@ WORKDIR /app
 # Copy package files and install production dependencies only
 COPY package.json package-lock.json* ./
 COPY app-api/package.json ./app-api/
+
+# Force npm to use public registry (avoid JFrog auth issues in CI)
+RUN echo "registry=https://registry.npmjs.org/" > .npmrc
 
 # Install only API production dependencies
 RUN npm install --workspace=app-api --omit=dev

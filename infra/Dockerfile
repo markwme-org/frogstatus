@@ -5,8 +5,7 @@ WORKDIR /app
 
 # Install JFrog CLI
 RUN apk add --no-cache curl && \
-    curl -fL https://install-cli.jfrog.io | sh && \
-    mv jf /usr/local/bin/jf
+    curl -fL https://install-cli.jfrog.io | sh
 
 # Accept JFrog server URL and npm repository as build args
 ARG JF_URL
@@ -41,8 +40,7 @@ WORKDIR /app
 
 # Install JFrog CLI
 RUN apk add --no-cache curl && \
-    curl -fL https://install-cli.jfrog.io | sh && \
-    mv jf /usr/local/bin/jf
+    curl -fL https://install-cli.jfrog.io | sh
 
 # Accept JFrog server URL and npm repository as build args
 ARG JF_URL

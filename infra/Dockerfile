@@ -7,18 +7,19 @@ WORKDIR /app
 RUN apk add --no-cache curl && \
     curl -fL https://install-cli.jfrog.io | sh
 
-# Accept JFrog server URL and npm repository as build args
+# Accept JFrog server URL, npm repository, and access token as build args
 ARG JF_URL
 ARG JF_NPM_REPOSITORY
+ARG JF_ACCESS_TOKEN
 
 # Copy package files
 COPY package.json package-lock.json* ./
 COPY app-api/package.json ./app-api/
 COPY app-ui/package.json ./app-ui/
 
-# Configure JFrog CLI for npm (anonymous access to remote repository)
-RUN if [ -n "$JF_URL" ] && [ -n "$JF_NPM_REPOSITORY" ]; then \
-        jf config add jfrog-server --url="$JF_URL" --interactive=false && \
+# Configure JFrog CLI for npm with authentication
+RUN if [ -n "$JF_URL" ] && [ -n "$JF_NPM_REPOSITORY" ] && [ -n "$JF_ACCESS_TOKEN" ]; then \
+        jf config add jfrog-server --url="$JF_URL" --access-token="$JF_ACCESS_TOKEN" --interactive=false && \
         jf npmc --global=true --repo-resolve="$JF_NPM_REPOSITORY" && \
         jf npm install; \
     else \
@@ -42,9 +43,10 @@ WORKDIR /app
 RUN apk add --no-cache curl && \
     curl -fL https://install-cli.jfrog.io | sh
 
-# Accept JFrog server URL and npm repository as build args
+# Accept JFrog server URL, npm repository, and access token as build args
 ARG JF_URL
 ARG JF_NPM_REPOSITORY
+ARG JF_ACCESS_TOKEN
 
 # Copy package files and install production dependencies only
 COPY package.json package-lock.json* ./
@@ -53,8 +55,8 @@ COPY app-ui/package.json ./app-ui/
 
 # Configure JFrog CLI for npm and install production dependencies
 # Note: jf npm doesn't support --workspace flag, so we install all production deps
-RUN if [ -n "$JF_URL" ] && [ -n "$JF_NPM_REPOSITORY" ]; then \
-        jf config add jfrog-server --url="$JF_URL" --interactive=false && \
+RUN if [ -n "$JF_URL" ] && [ -n "$JF_NPM_REPOSITORY" ] && [ -n "$JF_ACCESS_TOKEN" ]; then \
+        jf config add jfrog-server --url="$JF_URL" --access-token="$JF_ACCESS_TOKEN" --interactive=false && \
         jf npmc --global=true --repo-resolve="$JF_NPM_REPOSITORY" && \
         jf npm install --omit=dev; \
     else \

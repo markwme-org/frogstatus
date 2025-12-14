@@ -98,10 +98,14 @@ jobs:
         env:
           JF_NPM_REPOSITORY: ${{ vars.JF_NPM_REPOSITORY }}
         run: |
+          # Export JFrog access token from CLI config for Docker build
+          JF_ACCESS_TOKEN=$(jf config show | grep "Access token" | awk '{print $3}')
+
           echo Building frogstatus:${GITHUB_SHA}
           jf docker build -f infra/Dockerfile \
             --build-arg JF_URL="${{ vars.JF_URL }}" \
             --build-arg JF_NPM_REPOSITORY="${JF_NPM_REPOSITORY}" \
+            --build-arg JF_ACCESS_TOKEN="${JF_ACCESS_TOKEN}" \
             -t frogstatus:${{github.sha}} .
           echo Tagging "${{ steps.build-docker-tag.outputs.docker-tag-full}}"
           jf docker tag frogstatus:${{github.sha}} ${{ steps.build-docker-tag.outputs.docker-tag-full}}

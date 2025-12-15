@@ -51,6 +51,11 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: Update build info
+        run: |
+          jf rt build-collect-env
+          jf rt build-add-git
+
   docker-build:
     runs-on: ubuntu-latest
     needs: build-and-test
@@ -125,8 +130,6 @@ jobs:
 
       - name: Xray scan build-info
         run: |
-          # jf rt build-collect-env
-          # jf rt build-add-git
           # jf rt build-publish
           echo "Scanning build: $JFROG_CLI_BUILD_NAME #$JFROG_CLI_BUILD_NUMBER"
           jf build-scan "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" --fail=false          

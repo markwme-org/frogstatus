@@ -41,21 +41,6 @@ function updatePackageJson(workspace: string, state: DependencyState) {
   console.log(`✓ Updated ${workspace}/package.json`);
 }
 
-function saveCurrentState(state: 'vulnerable' | 'clean') {
-  const statePath = join(rootDir, '.current-state');
-  writeFileSync(statePath, state);
-  console.log(`✓ Set current state to: ${state}`);
-}
-
-function getCurrentState(): string {
-  try {
-    const statePath = join(rootDir, '.current-state');
-    return readFileSync(statePath, 'utf-8').trim();
-  } catch {
-    return 'unknown';
-  }
-}
-
 function main() {
   const args = process.argv.slice(2);
   const targetState = args[0] as 'vulnerable' | 'clean';
@@ -65,15 +50,8 @@ function main() {
     process.exit(1);
   }
 
-  const currentState = getCurrentState();
   console.log(`\n🐸 FrogStatus Dependency State Switcher`);
-  console.log(`Current state: ${currentState}`);
-  console.log(`Target state: ${targetState}\n`);
-
-  if (currentState === targetState) {
-    console.log(`⚠️  Already in ${targetState} state. Nothing to do.`);
-    process.exit(0);
-  }
+  console.log(`Setting to: ${targetState}\n`);
 
   const config = loadStateConfig();
   const stateConfig = config[targetState];
@@ -81,9 +59,6 @@ function main() {
   console.log('Updating package.json files...');
   updatePackageJson('app-api', stateConfig['app-api']);
   updatePackageJson('app-ui', stateConfig['app-ui']);
-
-  console.log('\nSaving state...');
-  saveCurrentState(targetState);
 
   console.log('\nReinstalling dependencies...');
   console.log('This may take a moment...\n');

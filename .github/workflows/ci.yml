@@ -58,6 +58,7 @@ jobs:
 
   xray-scan:
     runs-on: ubuntu-latest
+    needs: build-and-test
 
     steps:
       - name: Check JFrog Artifactory connection

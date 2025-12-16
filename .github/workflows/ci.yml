@@ -76,7 +76,7 @@ jobs:
         run: |
           # jf rt build-publish
           echo "Scanning build: $JFROG_CLI_BUILD_NAME #$JFROG_CLI_BUILD_NUMBER"
-          jf build-scan "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" --fail=false          
+          jf build-scan "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
 
   docker-build:
     runs-on: ubuntu-latest

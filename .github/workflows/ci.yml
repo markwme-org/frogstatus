@@ -43,6 +43,7 @@ jobs:
           JF_NPM_REPOSITORY: ${{ vars.JF_NPM_REPOSITORY }}
         run: |
           jf npmc --global=true --repo-resolve "$JF_NPM_REPOSITORY" 
+          jf npm cache clean --force
           jf npm install --module frogstatusmod
 
       - name: Run tests

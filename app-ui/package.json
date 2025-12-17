@@ -10,7 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "axios": "^0.30.2",
+    "axios": "^1.7.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

@@ -29,8 +29,9 @@ The model is now pre-downloaded during the Docker build process:
 ## Files Modified
 
 1. **`scripts/download-model.js`** (NEW)
-   - Pre-downloads the model during Docker build
-   - Stores model files in `models/cache/` directory
+   - Pre-downloads model files directly from HuggingFace during Docker build
+   - Downloads files without loading the model (avoids onnxruntime-node/glibc dependency)
+   - Stores model files in `models/cache/` directory with HuggingFace hub structure
    - This directory is copied into the Docker image
 
 2. **`infra/Dockerfile`**
@@ -121,3 +122,19 @@ The scan should detect the AI model files in the container.
 - The browser still downloads the model from HuggingFace CDN at runtime (this is normal for `@xenova/transformers`)
 - Having the model files in the Docker image is what enables JFrog detection
 - The model download script is non-fatal - if it fails, the build continues (model can still be downloaded at runtime)
+
+## Troubleshooting
+
+### Alpine Linux / glibc Compatibility
+
+The initial implementation tried to load the model using `@xenova/transformers` in Node.js, which requires `onnxruntime-node`. This package needs glibc, but Alpine Linux uses musl libc, causing build failures.
+
+**Solution**: The script now downloads model files directly from HuggingFace using HTTPS, avoiding the need to load the model and thus avoiding the glibc dependency. This works in Alpine and other minimal base images.
+
+### Build Failures
+
+If the model download fails during build:
+- Check network connectivity in the build environment
+- Verify HuggingFace API is accessible
+- The build will continue even if model download fails (non-fatal)
+- Model can still be downloaded at runtime in the browser

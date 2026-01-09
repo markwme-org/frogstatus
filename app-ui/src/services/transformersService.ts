@@ -8,8 +8,16 @@ async function loadTransformers() {
     try {
       transformersModule = await import('@xenova/transformers');
       // Configure transformers.js
+      // Note: allowLocalModels enables loading from local file system (Node.js only)
+      // In browser, models are downloaded from HuggingFace CDN
       transformersModule.env.allowLocalModels = false;
       transformersModule.env.useBrowserCache = true;
+      
+      // Note: The model files are pre-downloaded during Docker build and included
+      // in the container image at /app/models/cache/. This allows JFrog Shadow AI
+      // detection (via Xray) to scan and identify the AI model in the container.
+      // The browser will still download the model from HuggingFace CDN at runtime,
+      // but having the files in the Docker image is what enables JFrog detection.
     } catch (error) {
       console.error('Failed to load transformers module:', error);
       throw new Error('Transformers.js is not available. Please use a cloud provider instead.');

@@ -26,9 +26,15 @@ RUN --mount=type=secret,id=jfrog_config,target=/root/.jfrog/jfrog-cli.conf.v6 \
         npm install; \
     fi
 
-# Copy source code
+# Copy source code and scripts
 COPY app-api ./app-api
 COPY app-ui ./app-ui
+COPY scripts ./scripts
+
+# Pre-download the transformers.js model for JFrog Shadow AI detection
+# This ensures the model files are included in the Docker image
+# The model files will be scanned by JFrog Xray during container analysis
+RUN node scripts/download-model.js || echo "Warning: Model download failed, continuing build..."
 
 # Build both workspaces
 RUN npm run build
@@ -66,6 +72,10 @@ RUN --mount=type=secret,id=jfrog_config,target=/root/.jfrog/jfrog-cli.conf.v6 \
 COPY --from=builder /app/app-api/dist ./app-api/dist
 COPY --from=builder /app/app-ui/dist ./app-ui/dist
 COPY infra/server.js ./
+
+# Copy pre-downloaded model files for JFrog Shadow AI detection
+# This allows Xray to scan and detect the AI model in the container
+COPY --from=builder /app/models ./models
 
 EXPOSE 4000
 

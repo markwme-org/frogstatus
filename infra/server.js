@@ -28,6 +28,12 @@ await setupApiRoutes();
 // Serve UI static files
 app.use(express.static(path.join(__dirname, '../app-ui/dist')));
 
+// Serve model files for local transformers.js usage
+// This allows the model to be loaded from the server instead of HuggingFace CDN
+// The model files are included in the Docker image for JFrog Shadow AI detection
+const modelsPath = path.join(__dirname, '../models');
+app.use('/models', express.static(modelsPath));
+
 // Fallback to index.html for SPA routing
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {

@@ -19,6 +19,9 @@
   "devDependencies": {
     "tsx": "^4.7.0"
   },
+  "overrides": {
+    "@hono/node-server": "1.19.7"
+  },
   "engines": {
     "node": ">=22.0.0"
   }

@@ -5,6 +5,7 @@ import { BuildInfo, Dependency } from './api/types';
 import { BuildPanel } from './components/BuildPanel';
 import { DependencyPanel } from './components/DependencyPanel';
 import { JFrogFeaturesPanel } from './components/JFrogFeaturesPanel';
+import { ChatWidget } from './components/ChatWidget';
 import './App.css';
 
 function App() {
@@ -54,6 +55,7 @@ function App() {
           <JFrogFeaturesPanel buildInfo={buildInfo} />
         </div>
       </div>
+      <ChatWidget />
     </div>
   );
 }

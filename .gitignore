@@ -36,5 +36,5 @@ coverage/
 .current-state
 
 # JFrog CLI
-.jfrog/
+.jfrog/projects
 .npmrc

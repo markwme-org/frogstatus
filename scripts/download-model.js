@@ -46,6 +46,8 @@ async function downloadFile(url, dest) {
     protocol.get(url, (response) => {
       if (response.statusCode >= 300 && response.statusCode < 400) {
         // Follow redirect - handle both absolute and relative URLs
+        file.close();  // Close the file stream
+        response.destroy();  // Destroy the response to free the connection
         const redirectUrl = new URL(response.headers.location, url).toString();
         return downloadFile(redirectUrl, dest).then(resolve).catch(reject);
       }
@@ -64,7 +66,9 @@ async function downloadFile(url, dest) {
       });
     }).on('error', (err) => {
       file.close();
-      fs.unlinkSync(dest);
+      try {
+        fs.unlinkSync(dest);
+      } catch {}
       reject(err);
     });
   });

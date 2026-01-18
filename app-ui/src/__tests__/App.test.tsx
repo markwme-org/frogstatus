@@ -24,6 +24,11 @@ vi.mock('../api/getDependencies', () => ({
   ),
 }));
 
+// Mock ChatWidget to avoid axios DataCloneError in test environment
+vi.mock('../components/ChatWidget', () => ({
+  ChatWidget: () => null,
+}));
+
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();

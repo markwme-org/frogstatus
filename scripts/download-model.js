@@ -44,9 +44,10 @@ async function downloadFile(url, dest) {
     const protocol = url.startsWith('https:') ? https : http;
     
     protocol.get(url, (response) => {
-      if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
-        // Follow redirect
-        return downloadFile(response.headers.location, dest).then(resolve).catch(reject);
+      if (response.statusCode >= 300 && response.statusCode < 400) {
+        // Follow redirect - handle both absolute and relative URLs
+        const redirectUrl = new URL(response.headers.location, url).toString();
+        return downloadFile(redirectUrl, dest).then(resolve).catch(reject);
       }
       
       if (response.statusCode !== 200) {

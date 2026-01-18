@@ -1,0 +1,10 @@
+ {
+    "builds": [
+   {
+     "name": "FrogStatus CI Build",
+     "number": "86",
+     "repository_key": "mwfs-build-info",
+     "include_dependencies": false
+   }
+ ]
+}

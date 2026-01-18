@@ -44,7 +44,7 @@ async function downloadFile(url, dest) {
     const protocol = url.startsWith('https:') ? https : http;
     
     protocol.get(url, (response) => {
-      if (response.statusCode === 302 || response.statusCode === 301) {
+      if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
         // Follow redirect
         return downloadFile(response.headers.location, dest).then(resolve).catch(reject);
       }

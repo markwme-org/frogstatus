@@ -45,6 +45,8 @@
     "@babel/traverse": "7.24.7",
     "@babel/types": "7.24.7",
     "caniuse-lite": "1.0.30001640",
+    "electron-to-chromium": "1.5.267",
+    "node-releases": "2.0.27",
     "which-typed-array": "1.1.15",
     "node-abi": "3.65.0",
     "ufo": "1.5.4"

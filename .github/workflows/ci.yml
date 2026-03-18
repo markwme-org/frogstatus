@@ -129,11 +129,14 @@ jobs:
         run: |
           echo Building frogstatus:${GITHUB_SHA}
 
-          # Use BuildKit secrets to pass JFrog CLI config into the build
+          # Use BuildKit secrets to pass JFrog CLI config into the build.
+          # --provenance=false prevents BuildKit from creating an OCI attestation
+          # manifest index, which Artifactory rejects for mutable tags like "latest".
           jf docker build -f infra/Dockerfile \
             --build-arg JF_URL="${{ vars.JF_URL }}" \
             --build-arg JF_NPM_REPOSITORY="${JF_NPM_REPOSITORY}" \
             --secret id=jfrog_config,src=$HOME/.jfrog/jfrog-cli.conf.v6 \
+            --provenance=false \
             -t frogstatus:${{github.sha}} .
           echo Tagging "${{ steps.build-docker-tag.outputs.docker-tag-full}}"
           jf docker tag frogstatus:${{github.sha}} ${{ steps.build-docker-tag.outputs.docker-tag-full}}
@@ -141,12 +144,12 @@ jobs:
           jf docker tag frogstatus:${{github.sha}} ${{ steps.build-docker-tag.outputs.docker-tag-short}}
           echo Tagging "${{ steps.build-docker-tag.outputs.docker-tag-latest}}"
           jf docker tag frogstatus:${{github.sha}} ${{ steps.build-docker-tag.outputs.docker-tag-latest}}
-          echo Pushing "${{ steps.build-docker-tag.outputs.docker-tag-latest}}"
-          jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-latest}}
           echo Pushing "${{ steps.build-docker-tag.outputs.docker-tag-full}}"
           jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-full}}
           echo Pushing "${{ steps.build-docker-tag.outputs.docker-tag-short}}"
           jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-short}}
+          echo Pushing "${{ steps.build-docker-tag.outputs.docker-tag-latest}}"
+          jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-latest}}
 
       - name: Scan Docker image
         run: jf docker scan frogstatus:${{github.sha}}

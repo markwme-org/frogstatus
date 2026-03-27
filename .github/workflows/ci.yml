@@ -47,6 +47,8 @@ jobs:
           jf npm install --module frogstatusmod
 
       - name: Audit dependencies
+        env:
+          JF_NPM_REPOSITORY: ${{ vars.JF_NPM_REPOSITORY }}
         run: jf audit
 
       - name: Run tests

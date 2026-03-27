@@ -72,7 +72,7 @@ jobs:
           jf rt build-publish
 
       - name: Xray scan build
-        run: jf build-scan
+        run: jf build-scan --vuln
 
   docker-build:
     runs-on: ubuntu-latest

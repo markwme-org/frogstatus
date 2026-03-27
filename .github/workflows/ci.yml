@@ -46,6 +46,9 @@ jobs:
           jf npm cache clean --force
           jf npm install --module frogstatusmod
 
+      - name: Scan dependencies
+        run: jf scan .
+
       - name: Run tests
         if: false
         run: npm test

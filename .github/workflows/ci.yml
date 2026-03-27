@@ -15,6 +15,7 @@ permissions:
 env:
   JF_URL: ${{ vars.JF_URL }}
   JF_OIDC_PROVIDER: ${{ vars.JF_OIDC_PROVIDER }}
+  JF_PROJECT: ${{ vars.JF_PROJECT_KEY}}
   JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
@@ -51,10 +52,8 @@ jobs:
       - name: Debug audit summary output
         if: always()
         run: |
-          echo "=== Directory structure ==="
-          find "$JFROG_CLI_COMMAND_SUMMARY_OUTPUT_DIR" -type f | sort
-          echo "=== File contents ==="
-          find "$JFROG_CLI_COMMAND_SUMMARY_OUTPUT_DIR" -type f | sort | while read f; do
+          echo "=== JFrog summary files ==="
+          find "$JFROG_CLI_COMMAND_SUMMARY_OUTPUT_DIR" -type f \( -name "*.json" -o -name "*.md" -o -name "*.sarif" \) | sort | while read f; do
             echo "--- $f ---"
             cat "$f"
           done
@@ -137,10 +136,8 @@ jobs:
       - name: Debug docker scan summary output
         if: always()
         run: |
-          echo "=== Directory structure ==="
-          find "$JFROG_CLI_COMMAND_SUMMARY_OUTPUT_DIR" -type f | sort
-          echo "=== File contents ==="
-          find "$JFROG_CLI_COMMAND_SUMMARY_OUTPUT_DIR" -type f | sort | while read f; do
+          echo "=== JFrog summary files ==="
+          find "$JFROG_CLI_COMMAND_SUMMARY_OUTPUT_DIR" -type f \( -name "*.json" -o -name "*.md" -o -name "*.sarif" \) | sort | while read f; do
             echo "--- $f ---"
             cat "$f"
           done

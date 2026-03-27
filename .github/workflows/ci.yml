@@ -15,7 +15,6 @@ permissions:
 env:
   JF_URL: ${{ vars.JF_URL }}
   JF_OIDC_PROVIDER: ${{ vars.JF_OIDC_PROVIDER }}
-  JF_PROJECT: ${{ vars.JF_PROJECT_KEY}}
   JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:

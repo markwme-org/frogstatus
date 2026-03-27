@@ -63,7 +63,7 @@ jobs:
           jf rt build-publish
 
       - name: Xray scan build
-        run: jf build-scan "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
+        run: jf build-scan
 
   docker-build:
     runs-on: ubuntu-latest

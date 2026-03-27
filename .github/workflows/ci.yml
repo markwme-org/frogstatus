@@ -58,27 +58,9 @@ jobs:
           jf rt build-collect-env
           jf rt build-add-git
           jf rt build-publish
-          jf build-scan "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
 
-  xray-scan:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Check JFrog Artifactory connection
-        uses: ./.github/actions/setup-jfrog-cli
-      - run: |
-          echo "Pinging JFrog Artifactory instance"
-          jf -v
-          jf rt ping
-
-      - name: Xray scan build-info
-        run: |
-          echo "Scanning build: $JFROG_CLI_BUILD_NAME #$JFROG_CLI_BUILD_NUMBER"
-          jf scan --build-name "$JFROG_CLI_BUILD_NAME" --build-number "$JFROG_CLI_BUILD_NUMBER"
+      - name: Xray scan build
+        run: jf build-scan "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
 
   docker-build:
     runs-on: ubuntu-latest

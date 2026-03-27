@@ -15,7 +15,6 @@ permissions:
 env:
   JF_URL: ${{ vars.JF_URL }}
   JF_OIDC_PROVIDER: ${{ vars.JF_OIDC_PROVIDER }}
-  JF_PROJECT: ${{ vars.JF_PROJECT_KEY}}
   JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
@@ -48,15 +47,6 @@ jobs:
 
       - name: Audit dependencies
         run: jf audit --working-dirs "." --vuln
-
-      - name: Debug audit summary output
-        if: always()
-        run: |
-          echo "=== JFrog summary files ==="
-          find "$JFROG_CLI_COMMAND_SUMMARY_OUTPUT_DIR" -type f \( -name "*.json" -o -name "*.md" -o -name "*.sarif" \) | sort | while read f; do
-            echo "--- $f ---"
-            cat "$f"
-          done
 
       - name: Run tests
         if: false
@@ -132,15 +122,6 @@ jobs:
 
       - name: Scan Docker image
         run: jf docker scan ${{ steps.build-docker-tag.outputs.docker-tag-short}}
-
-      - name: Debug docker scan summary output
-        if: always()
-        run: |
-          echo "=== JFrog summary files ==="
-          find "$JFROG_CLI_COMMAND_SUMMARY_OUTPUT_DIR" -type f \( -name "*.json" -o -name "*.md" -o -name "*.sarif" \) | sort | while read f; do
-            echo "--- $f ---"
-            cat "$f"
-          done
 
       # TODO: Push Docker image to Artifactory
       # - name: Push to Artifactory

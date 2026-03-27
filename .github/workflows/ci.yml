@@ -9,8 +9,8 @@ on:
 
 permissions:
   contents: read
-  id-token: write  # Required for OIDC authentication with JFrog
-  # security-events: write # needed?
+  id-token: write
+  security-events: write
 
 env:
   JF_URL: ${{ vars.JF_URL }}
@@ -44,7 +44,7 @@ jobs:
         run: |
           jf npmc --global=true --repo-resolve "$JF_NPM_REPOSITORY"
           jf npm cache clean --force
-          jf npm ci --module frogstatusmod
+          jf npm install --module frogstatusmod
 
       - name: Run tests
         if: false
@@ -57,6 +57,7 @@ jobs:
         run: |
           jf rt build-collect-env
           jf rt build-add-git
+          jf build-scan "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
           jf rt build-publish
 
   xray-scan:
@@ -77,7 +78,7 @@ jobs:
       - name: Xray scan build-info
         run: |
           echo "Scanning build: $JFROG_CLI_BUILD_NAME #$JFROG_CLI_BUILD_NUMBER"
-          jf build-scan "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
+          jf scan "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
 
   docker-build:
     runs-on: ubuntu-latest

@@ -44,6 +44,11 @@ jobs:
         run: npm run build
 
       - name: Publish build info
+        env:
+          # Suppress build-publish from writing to the Job Summary — build-scan
+          # writes its own combined entry (build info + security results), so
+          # leaving both would produce a duplicate row in the summary.
+          JFROG_CLI_COMMAND_SUMMARY_OUTPUT_DIR: ""
         run: |
           jf rt build-collect-env
           jf rt build-add-git

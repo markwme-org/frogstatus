@@ -19,24 +19,18 @@ env:
   JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  build-and-test:
+  build-and-scan:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-      - name: Setup Node.js 24.x
-        uses: actions/setup-node@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 24.x
 
-      - name: Check JFrog Artifactory connection
-        uses: ./.github/actions/setup-jfrog-cli
-      - run: |
-          echo "Pinging JFrog Artifactory instance"
-          jf -v
-          jf rt ping
+      - uses: ./.github/actions/setup-jfrog-cli
+      - run: jf -v && jf rt ping
 
       - name: Install dependencies
         env:
@@ -46,9 +40,8 @@ jobs:
           jf npm cache clean --force
           jf npm install --module frogstatusmod
 
-      - name: Run tests
-        if: false
-        run: npm test
+      - name: Audit dependencies
+        run: jf audit --working-dirs "." --vuln
 
       - name: Build application
         run: npm run build
@@ -62,62 +55,25 @@ jobs:
       - name: Xray scan build
         run: jf build-scan --project "$JF_PROJECT" --vuln --fail=false
 
-  docker-build:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Check JFrog Artifactory connection
-        uses: ./.github/actions/setup-jfrog-cli
-      - run: |
-          echo "Pinging JFrog Artifactory instance"
-          jf -v
-          jf rt ping
-
-      # Setup Docker build tag
       - name: Build Docker image tag
-        id: build-docker-tag
+        id: docker-tag
         run: |
-          JF_URL="${{ vars.JF_URL }}"
-          JF_DOCKER_REPOSITORY="${{ vars.JF_DOCKER_REPOSITORY }}"
-          
-          # Strip https:// if present
-          JF_URL="${JF_URL#https://}"
-          JF_URL="${JF_URL#http://}"
-          
-          # Strip trailing slash if present
-          JF_URL="${JF_URL%/}"
+          JF_HOST="${JF_URL#https://}"
+          JF_HOST="${JF_HOST#http://}"
+          JF_HOST="${JF_HOST%/}"
+          echo "tag=${JF_HOST}/${{ vars.JF_DOCKER_REPOSITORY }}/frogstatus:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-          # Construct the base
-          DOCKER_TAG_FULL="${JF_URL}/${JF_DOCKER_REPOSITORY}/frogstatus:${GITHUB_SHA}"
-          DOCKER_TAG_SHORT="${JF_URL}/${JF_DOCKER_REPOSITORY}/frogstatus:${GITHUB_SHA::7}"
-
-          # Construct and output tags
-          echo "docker-tag-full=${DOCKER_TAG_FULL}" >> $GITHUB_OUTPUT
-          echo "docker-tag-short=${DOCKER_TAG_SHORT}" >> $GITHUB_OUTPUT
-
-          echo "docker-tag: ${DOCKER_TAG_FULL}"
-          echo "docker-tag (short): ${DOCKER_TAG_SHORT}"
-        
       - name: Build and push Docker image
         env:
           JF_NPM_REPOSITORY: ${{ vars.JF_NPM_REPOSITORY }}
           DOCKER_BUILDKIT: 1
         run: |
-          echo Building frogstatus:${GITHUB_SHA::7}
-
-          # Use BuildKit secrets to pass JFrog CLI config into the build
           jf docker build -f infra/Dockerfile \
-            --build-arg JF_URL="${{ vars.JF_URL }}" \
+            --build-arg JF_URL="${JF_URL}" \
             --build-arg JF_NPM_REPOSITORY="${JF_NPM_REPOSITORY}" \
             --secret id=jfrog_config,src=$HOME/.jfrog/jfrog-cli.conf.v6 \
-            -t ${{ steps.build-docker-tag.outputs.docker-tag-short}} .
-          echo Pushing "${{ steps.build-docker-tag.outputs.docker-tag-short}}"
-          jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-short}}
+            -t ${{ steps.docker-tag.outputs.tag }} .
+          jf docker push ${{ steps.docker-tag.outputs.tag }}
 
       - name: Scan Docker image
-        run: jf docker scan ${{ steps.build-docker-tag.outputs.docker-tag-short}} --fail=false
-
+        run: jf docker scan ${{ steps.docker-tag.outputs.tag }} --project "$JF_PROJECT" --vuln --fail=false

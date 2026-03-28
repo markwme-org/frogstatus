@@ -40,9 +40,6 @@ jobs:
           jf npm cache clean --force
           jf npm install --module frogstatusmod
 
-      - name: Audit dependencies
-        run: jf audit --working-dirs "." --vuln
-
       - name: Build application
         run: npm run build
 

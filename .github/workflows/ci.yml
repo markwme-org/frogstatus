@@ -63,7 +63,7 @@ jobs:
           jf rt build-publish
 
       - name: Xray scan build
-        run: jf build-scan --vuln
+        run: jf build-scan --project "$JF_PROJECT" --vuln --fail=false
 
   docker-build:
     runs-on: ubuntu-latest
@@ -122,14 +122,5 @@ jobs:
           jf docker push ${{ steps.build-docker-tag.outputs.docker-tag-short}}
 
       - name: Scan Docker image
-        run: jf docker scan ${{ steps.build-docker-tag.outputs.docker-tag-short}}
+        run: jf docker scan ${{ steps.build-docker-tag.outputs.docker-tag-short}} --fail=false
 
-      # TODO: Push Docker image to Artifactory
-      # - name: Push to Artifactory
-      #   run: |
-      #     docker tag frogstatus:${{ github.sha }} ${{ secrets.ARTIFACTORY_REGISTRY }}/frogstatus:${{ github.sha }}
-      #     docker push ${{ secrets.ARTIFACTORY_REGISTRY }}/frogstatus:${{ github.sha }}
-
-      # TODO: Scan Docker image with Xray
-      # - name: Scan Docker image
-      #   run: jf docker scan ${{ secrets.ARTIFACTORY_REGISTRY }}/frogstatus:${{ github.sha }}

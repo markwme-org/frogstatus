@@ -4,6 +4,6 @@ runs:
   steps:
     - uses: jfrog/setup-jfrog-cli@v5
       with:
-        version: 2.71.3
+        version: latest
         oidc-provider-name: ${{ env.JF_OIDC_PROVIDER }}
         oidc-audience: ${{ env.JF_URL }}

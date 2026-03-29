@@ -38,3 +38,5 @@ coverage/
 # JFrog CLI
 .jfrog/projects
 .npmrc
+# Claude Code
+.claude/

@@ -160,7 +160,19 @@ in a pull request — without even knowing about it."*
 ```
 
 This creates a branch with a known-vulnerable dependency and opens a PR.
-Switch to GitHub — Frogbot will comment within a minute or two.
+
+Go to the **Actions tab** and find the pending Frogbot workflow run. Click
+**Review deployments**, check the box, and approve. Use this moment:
+
+> "Frogbot requires a trusted reviewer to approve the scan before it runs —
+> this prevents a malicious PR from using Frogbot to probe your JFrog credentials."
+
+Frogbot will comment within a minute or two of approval.
+The workflow run itself will show as **failed** — that's intentional and worth pointing out:
+
+> "The Frogbot job is marked as failed — that's the enforcement signal. This PR
+> can't be silently merged while these vulnerabilities are present. But the real
+> output is here on the PR itself..."
 
 Walk through the Frogbot comment:
 

@@ -24,4 +24,12 @@ echo "▶ Deleting local branch..."
 git branch -D "$BRANCH" 2>/dev/null && echo "  Local branch deleted" || echo "  Local branch not found"
 
 echo ""
+echo "▶ Closing Frogbot fix PRs (if any)..."
+gh pr list --search "head:frogbot-" --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"' | \
+  while read number branch; do
+    gh pr close "$number" 2>/dev/null && echo "  Closed PR #$number ($branch)" || true
+    git push origin --delete "$branch" 2>/dev/null && echo "  Deleted branch $branch" || true
+  done
+
+echo ""
 echo "▶ Done. Ready for next demo run."

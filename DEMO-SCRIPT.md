@@ -197,7 +197,7 @@ Clean up after the demo:
 
 If you applied fixes live in Act 3, commit and push those changes:
 ```bash
-git add package.json app-api/package.json app-ui/package.json package-lock.json
+git add package.json
 git commit -m "fix: upgrade dependencies to compliant versions"
 git push
 ```
@@ -205,8 +205,7 @@ git push
 If resetting to clean state instead of using the live MCP fixes:
 ```bash
 npm run set-clean:no-install
-jf npm install
-git add package.json app-api/package.json app-ui/package.json package-lock.json
+git add package.json
 git commit -m "fix: upgrade dependencies to compliant versions"
 git push
 ```

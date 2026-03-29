@@ -4,7 +4,7 @@ const _ = require('lodash');
 
 // The build name to query. Defaults to 'frogstatus' but can be overridden
 // via the FROGSTATUS_BUILD_NAME environment variable.
-const BUILD_NAME = process.env.FROGSTATUS_BUILD_NAME || 'frogstatus';
+const BUILD_NAME = process.env.FROGSTATUS_BUILD_NAME || 'FrogStatus CI Build';
 
 // Colour / style constants for consistent theming
 const COLORS = {
@@ -293,9 +293,13 @@ function createApp(config, api) {
       const numbers = await api.getBuildNumbers(BUILD_NAME);
 
       if (numbers.length === 0) {
+        const available = await api.listBuilds().catch(() => []);
+        const hint = available.length
+          ? `Available builds: ${available.join(', ')}`
+          : 'No builds found in Artifactory.';
         messageBox.setContent(
           `{yellow-fg}No builds found for "${BUILD_NAME}".{/yellow-fg}\n` +
-          `{white-fg}Set FROGSTATUS_BUILD_NAME to change the build name.{/white-fg}`
+          `{white-fg}Set FROGSTATUS_BUILD_NAME env var to override.\n${hint}{/white-fg}`
         );
         screen.render();
         return;
@@ -313,9 +317,16 @@ function createApp(config, api) {
     } catch (err) {
       messageBox.show();
       buildsTable.hide();
-      messageBox.setContent(
-        `{red-fg}Error loading builds:{/red-fg}\n{white-fg}${err.message}{/white-fg}`
-      );
+      const is404 = err.response?.status === 404;
+      let content = `{red-fg}Error loading builds:{/red-fg}\n{white-fg}${err.message}{/white-fg}`;
+      if (is404) {
+        const available = await api.listBuilds().catch(() => []);
+        const hint = available.length
+          ? `\n\n{yellow-fg}Available builds:{/yellow-fg}\n${available.map(b => `  ${b}`).join('\n')}\n\nSet FROGSTATUS_BUILD_NAME to one of the above.`
+          : '\n\nNo builds found in Artifactory.';
+        content += hint;
+      }
+      messageBox.setContent(content);
       screen.render();
     }
   }

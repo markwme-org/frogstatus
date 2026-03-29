@@ -22,7 +22,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
 echo "▶ Switching to vulnerable dependency state..."
-npm run set-vulnerable
+npm run set-vulnerable:no-install
 
 echo ""
 echo "▶ Cleaning up any leftover demo PRs..."
@@ -31,7 +31,7 @@ echo "▶ Cleaning up any leftover demo PRs..."
 if [[ "$PUSH" == true ]]; then
   echo ""
   echo "▶ Committing and pushing to trigger CI failure..."
-  git add package.json package-lock.json
+  git add package.json
   git diff --cached --quiet && echo "  Nothing to commit (already in vulnerable state)" || \
     git commit -m "demo: switch to vulnerable dependencies"
   git push

@@ -1,493 +1,227 @@
 # FrogStatus Demo Guide
 
-This guide walks through using FrogStatus to demonstrate JFrog's security and DevSecOps capabilities.
-
-## Table of Contents
-
-1. [Demo Overview](#demo-overview)
-2. [Prerequisites](#prerequisites)
-3. [Demo Flow](#demo-flow)
-4. [FrogBot Integration Points](#frogbot-integration-points)
-5. [Vulnerability Details](#vulnerability-details)
-6. [Talking Points](#talking-points)
-
----
-
-## Demo Overview
-
-FrogStatus is designed to showcase JFrog's integrated security platform including:
-
-- **JFrog Xray**: Vulnerability scanning and policy enforcement
-- **JFrog Artifactory**: Build info and artifact tracking
-- **JFrog Curation**: Package curation and approval workflows
-- **IDE Integration**: Real-time security feedback during development
-- **FrogBot**: Automated pull request scanning and fix suggestions
-- **CI/CD Integration**: Build-time security gates
+A repeatable, scripted demo covering JFrog's software supply chain security story:
+Curation → Local tooling → CI gate → MCP/AI-assisted fixes → Frogbot PR scanning.
 
 ---
 
 ## Prerequisites
 
-### Required JFrog Setup
+**JFrog setup:**
+- Artifactory with an npm remote repository proxying npmjs.org
+- Xray enabled with a Watch covering your npm builds
+- Curation policies enabled (CVSS high/critical block + malicious package block)
+- CVS (Compliant Version Selection) enabled
+- Frogbot installed on this repository
+- JFrog MCP server configured in your IDE (for MCP step)
 
-1. **JFrog Platform Access**
-   - Artifactory instance
-   - Xray enabled
-   - Curation policies configured (optional)
+**Local setup:**
+- JFrog CLI authenticated (`jf c show`)
+- JFrog VS Code extension installed and connected
+- `JF_NPM_REPOSITORY` env var set to your npm repository name
+- GitHub CLI authenticated (`gh auth status`)
 
-2. **JFrog IDE Plugin**
-   - Install for your IDE (VS Code, IntelliJ, etc.)
-   - Configure with your JFrog platform URL and credentials
+**One-time setup (if node_modules are missing):**
+```bash
+npm run set-clean:no-install
+rm -rf node_modules app-api/node_modules app-ui/node_modules package-lock.json
+jf npm install
+```
 
-3. **GitHub Repository**
-   - Fork or clone FrogStatus to your GitHub account
-   - Configure GitHub Actions secrets:
-     - `JF_URL`: Your JFrog platform URL
-     - `JF_ACCESS_TOKEN`: JFrog access token with appropriate permissions
+---
 
-4. **FrogBot (Optional)**
-   - Install FrogBot GitHub App on your repository
-   - Configure FrogBot scanning policies
+## Before the Audience Arrives
 
-### Local Development Setup
+Run the setup script to put the repo into a known failing state:
 
 ```bash
-# Clone the repository
-git clone <your-fork-url>
-cd frogstatus
+./scripts/demo-setup.sh
+```
 
-# Start in CLEAN state
-npm install
-npm run set-clean
+This switches to vulnerable dependencies, cleans up any leftover demo PRs, commits, and pushes — triggering a CI run that will fail. Wait for it to fail before starting.
 
-# Verify setup
-npm test
-npm run build
+To reset after the demo:
+```bash
+./scripts/demo-cleanup-pr.sh   # close Frogbot PR and delete branch
+npm run set-clean:no-install   # flip package.json back to clean
 ```
 
 ---
 
 ## Demo Flow
 
-### Phase 1: Development with Vulnerabilities
+### 1. CI Gate — The Build Failed
 
-**Objective**: Show how vulnerabilities are detected during local development
+**What to show:** GitHub Actions → the failing build → JFrog Job Summary tab.
 
-1. **Switch to vulnerable state**
-   ```bash
-   npm run set-vulnerable
-   ```
+Open the failed CI run. Click the **JFrog Job Summary** tab.
 
-2. **Open the project in your IDE**
-   - The JFrog IDE plugin will automatically scan
-   - Demonstrate the security issues it finds:
-     - Dependency vulnerabilities (CVEs)
-     - SAST issues in code
-     - Hardcoded secrets
-     - Insecure coding patterns
+The summary shows two things:
+- **Curation blocks**: packages that were blocked during `npm install`
+- **Xray violations**: policy violations from the build scan
 
-3. **Show vulnerable dependencies in UI**
-   ```bash
-   npm run dev
-   ```
-   - Open http://localhost:3000
-   - Point out the Dependency Health panel showing vulnerabilities
-   - Show CVE details, severity badges
-   - Explain the vulnerable packages:
-     - `lodash 4.17.19` - Prototype pollution
-     - `axios 0.21.1` - SSRF vulnerability
-     - `jsonwebtoken 8.5.1` - JWT bypass vulnerabilities
-     - `node-forge 0.10.0` - Cryptographic vulnerabilities
-     - `express 4.17.1` - Open redirect
+Point out the axios block specifically:
+> "axios 0.21.1 is a hard block — CRITICAL CVE 9.8, no waiver available. The build never even got past the install step for this one."
 
-4. **Review vulnerable code patterns** (app-api/src/routes/vulnerable.ts)
-   - Hardcoded credentials
-   - Command injection vulnerability
-   - Path traversal
-   - SQL injection pattern
-   - Insecure crypto usage
-   - Regex DoS (ReDoS)
+For the other packages (node-forge, jsonwebtoken, @hono/node-server, lodash):
+> "These are High severity. Policy allows waivers — a security team can approve an exception while a fix is being prepared."
 
-**Key Talking Points:**
-- "Shift left" security - finding issues before commit
-- Developer-friendly feedback in familiar tools
-- Real-time detection without context switching
-
-### Phase 2: Git Push & CI/CD Pipeline
-
-**Objective**: Show build-time security gates and JFrog platform integration
-
-1. **Make a small code change**
-   ```bash
-   # Example: Update a comment or add a console.log
-   git add .
-   git commit -m "feat: update dashboard display"
-   git push origin main
-   ```
-
-2. **GitHub Actions pipeline runs**
-   - Navigate to Actions tab in GitHub
-   - Show the CI pipeline executing
-   - Point out JFrog CLI steps (currently as TODO comments)
-
-3. **In JFrog Platform - Show:**
-
-   **Artifactory:**
-   - Build info published
-   - Dependencies tracked
-   - Environment metadata
-
-   **Xray:**
-   - Automatic scan triggered
-   - Vulnerabilities detected and flagged
-   - Policy violations
-   - Security issues surfaced
-
-   **Watches & Policies:**
-   - Show configured policies (e.g., "Block Critical CVEs")
-   - Demonstrate watch notifications
-   - Explain policy actions (warn, fail build, etc.)
-
-   **Builds Dashboard:**
-   - Show all builds for frogstatus
-   - Filter by vulnerable builds
-   - Demonstrate impact analysis
-   - Show which builds use vulnerable components
-
-**Key Talking Points:**
-- Automated security scanning without developer overhead
-- Comprehensive tracking of all dependencies
-- Policy-based enforcement
-- Visibility across all builds and environments
-
-### Phase 3: Fix and Remediate
-
-**Objective**: Show the fix workflow and verification
-
-1. **Switch to clean state**
-   ```bash
-   npm run set-clean
-   npm test  # Verify everything still works
-   ```
-
-2. **Verify locally with IDE scanner**
-   - Show IDE plugin now reports clean
-   - Demonstrate reduced/eliminated vulnerabilities
-   - Point out remaining warnings are less critical
-
-3. **View clean dependencies in UI**
-   ```bash
-   npm run dev
-   ```
-   - Show Dependency Health panel now shows "ok" status
-   - No CVE badges displayed
-   - All packages at secure versions
-
-4. **Commit and push clean version**
-   ```bash
-   git add .
-   git commit -m "fix: upgrade dependencies to resolve CVEs"
-   git push origin main
-   ```
-
-5. **Show clean build in JFrog Platform**
-   - New build published
-   - Xray scan passes
-   - No policy violations
-   - Compare with previous vulnerable build
-
-**Key Talking Points:**
-- Quick remediation workflow
-- Verification at every step
-- Build history and comparison
-- Compliance tracking
+**Talking point:** The CI gate catches this before any artifact is promoted. Nothing reaches staging with these dependencies.
 
 ---
 
-## FrogBot Integration Points
+### 2. Local Developer View — IDE Extension
 
-FrogBot adds automated PR scanning and fix generation to your workflow.
+Switch to VS Code with the project open.
 
-### Setup FrogBot
+The JFrog extension highlights vulnerable packages inline in `package.json`. Hover over a flagged dependency to show CVE details, severity, and the recommended fix version.
 
-1. **Install FrogBot GitHub App**
-   - Go to https://github.com/apps/frogbot
-   - Install on your repository
-
-2. **Configure FrogBot**
-   ```yaml
-   # .github/workflows/frogbot.yml
-   name: Frogbot Scan
-   on:
-     pull_request:
-       types: [opened, synchronize]
-
-   jobs:
-     scan:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: jfrog/frogbot@v2
-           env:
-             JF_URL: ${{ secrets.JF_URL }}
-             JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
-             JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-   ```
-
-### Demo Scenarios with FrogBot
-
-#### Scenario A: PR with Vulnerabilities
-
-1. **Create a branch with vulnerabilities**
-   ```bash
-   git checkout -b feature/add-logging
-   npm run set-vulnerable
-   # Make some code changes
-   git add .
-   git commit -m "feat: add logging functionality"
-   git push origin feature/add-logging
-   ```
-
-2. **Create Pull Request**
-   - FrogBot automatically scans
-   - Comments on PR with vulnerability findings
-   - Shows CVE details, severity, fixes
-
-3. **Demonstrate PR Comments**
-   - Vulnerability summary
-   - Contextual insights
-   - Recommended remediation
-   - Links to CVE databases
-
-**Talking Points:**
-- Security review automation
-- No manual intervention needed
-- Educational feedback for developers
-- Prevents vulnerable code from merging
-
-#### Scenario B: FrogBot Auto-Fix PR
-
-FrogBot can automatically create PRs to fix vulnerabilities.
-
-1. **Enable auto-fix in FrogBot config**
-   ```yaml
-   # In FrogBot config
-   autoFix: true
-   ```
-
-2. **FrogBot detects vulnerabilities on main branch**
-   - Automatically creates a "fix" branch
-   - Updates package.json with secure versions
-   - Opens PR with detailed explanation
-   - Includes test results
-
-3. **Review and merge FrogBot's PR**
-   - Show the automated fix
-   - Demonstrate test pass
-   - Merge to apply fixes
-
-**Talking Points:**
-- Proactive vulnerability management
-- Automated remediation suggestions
-- Reduces developer toil
-- Continuous security improvement
-
-#### Scenario C: Fail PR on Policy Violation
-
-1. **Configure strict Xray policy**
-   - Block on Critical or High severity
-   - Enforce curation rules
-
-2. **Submit PR with violations**
-   - FrogBot scans and finds policy violations
-   - PR is automatically marked as failed
-   - Clear explanation of what must be fixed
-
-3. **Show enforcement**
-   - Cannot merge until fixed
-   - Policy-driven guardrails
-   - Compliance maintained
-
-**Talking Points:**
-- Automated policy enforcement
-- No manual security reviews needed
-- Consistent standards across teams
-- Audit trail and compliance
+**Talking point:** "Developers get this feedback in their normal workflow without switching tools. Shift left — catch it before it's ever committed."
 
 ---
 
-## Vulnerability Details
-
-### Dependency Vulnerabilities (Vulnerable State)
-
-| Package | Vulnerable Version | CVEs | Severity | Description |
-|---------|-------------------|------|----------|-------------|
-| lodash | 4.17.19 | CVE-2020-8203 | High | Prototype pollution vulnerability |
-| axios | 0.21.1 | CVE-2021-3749 | Medium | Server-Side Request Forgery (SSRF) |
-| jsonwebtoken | 8.5.1 | CVE-2022-23529, CVE-2022-23539, CVE-2022-23540, CVE-2022-23541 | Critical | JWT verification bypass vulnerabilities |
-| node-forge | 0.10.0 | CVE-2022-24771, CVE-2022-24772, CVE-2022-24773 | High | Cryptographic vulnerabilities and signature forgery |
-| express | 4.17.1 | CVE-2022-24999 | Medium | Open redirect vulnerability |
-
-### Code-Level Vulnerabilities (SAST Findings)
-
-Located in `app-api/src/routes/vulnerable.ts`:
-
-1. **Hardcoded Credentials** (Lines 9-11)
-   - Username and password in source code
-   - Severity: Critical
-   - Fix: Use environment variables or secrets management
-
-2. **Insecure Cryptography** (Lines 28-32)
-   - Using deprecated `crypto.createCipher`
-   - Severity: High
-   - Fix: Use `crypto.createCipheriv` with proper IV
-
-3. **Command Injection** (Lines 41-47)
-   - Unsanitized user input passed to `execSync`
-   - Severity: Critical
-   - Fix: Validate and sanitize input, use parameterized commands
-
-4. **Path Traversal** (Lines 54-60)
-   - No path sanitization allowing `../` attacks
-   - Severity: High
-   - Fix: Use `path.normalize` and validate against allowed paths
-
-5. **SQL Injection** (Lines 67-75)
-   - String concatenation for SQL query construction
-   - Severity: Critical
-   - Fix: Use parameterized queries/prepared statements
-
-6. **Insecure Random** (Lines 82-87)
-   - `Math.random()` for security-sensitive tokens
-   - Severity: Medium
-   - Fix: Use `crypto.randomBytes`
-
-7. **Secrets Exposure** (Lines 94-101)
-   - API keys and credentials in response
-   - Severity: High
-   - Fix: Remove sensitive data from responses
-
-8. **Regex DoS** (Lines 108-113)
-   - Complex regex vulnerable to catastrophic backtracking
-   - Severity: Medium
-   - Fix: Simplify regex or use alternative validation
-
----
-
-## Talking Points
-
-### Opening
-
-"Today I'll show you how JFrog's integrated security platform helps organizations shift security left and maintain a secure software supply chain. We'll see vulnerabilities detected, tracked, and remediated across the entire SDLC."
-
-### During Local Development
-
-"Developers get immediate feedback right in their IDE - no need to wait for CI/CD or a security team review. This shifts security left and makes it part of the developer workflow."
-
-### During CI/CD
-
-"Every build is automatically scanned, tracked, and enforced against your security policies. You get complete visibility into what's deployed and can quickly identify and remediate issues."
-
-### FrogBot Integration
-
-"FrogBot takes this further by automating security reviews in pull requests and even suggesting fixes. This removes manual overhead while maintaining high security standards."
-
-### Value Proposition
-
-- **Shift Left**: Find issues before they reach production
-- **Automation**: Reduce manual security reviews
-- **Visibility**: Complete supply chain transparency
-- **Policy Enforcement**: Automated governance
-- **Developer Experience**: Security without friction
-- **Continuous Monitoring**: Ongoing vulnerability detection
-
----
-
-## Quick Reference Commands
+### 3. Local Developer View — Curation Audit
 
 ```bash
-# Switch states
-npm run set-vulnerable    # Switch to vulnerable dependencies
-npm run set-clean         # Switch to clean dependencies
+jf curation-audit
+```
 
-# Development
-npm run dev               # Start both API and UI in dev mode
-npm test                  # Run all tests
-npm run build             # Build for production
+This shows the same 5 blocked packages the CI saw, but locally — before any push. Each entry includes:
+- The CVEs and CVSS scores
+- Whether a waiver is available
+- The recommended fix version
 
-# Check current state
-cat .current-state        # Shows "vulnerable" or "clean"
+**Talking point:**
+> "A developer can run this in 30 seconds and know exactly what's blocked and why. No waiting for CI."
 
-# View vulnerabilities
-npm audit                 # npm's vulnerability report
+Point out the distinction between hard blocks and waiverable blocks:
+- `axios@0.21.1` → hard block, must upgrade
+- `node-forge`, `jsonwebtoken`, `lodash`, `@hono/node-server` → waiver available
+
+On CVS (mention, don't demo live):
+> "CVS — Compliant Version Selection — takes this further. Instead of blocking the install, it transparently filters blocked versions from the package index. If you have a range like `^7.0.0`, CVS removes the blocked versions before npm ever sees them. Your build stays green, you automatically get the compliant version. We saw this with undici recently — 12+ consecutive releases were blocked for Critical CVEs. Teams with CVS never had a failing build."
+
+---
+
+### 4. Local Developer View — Full Audit
+
+```bash
+jf audit --working-dirs '.'
+```
+
+This goes beyond curation to show the full Xray picture: all CVEs across the dependency tree, including transitive dependencies, with CVSS scores and fix versions.
+
+**Talking point:** "Curation audit is your pre-emptive gate. Xray audit is your full-spectrum view — it catches issues in transitive dependencies your direct deps pull in."
+
+---
+
+### 5. AI-Assisted Fix — MCP + Copilot
+
+With the JFrog MCP server configured in your IDE, open GitHub Copilot chat and ask:
+
+> "What's the safe version of axios I should upgrade to?"
+> "Are there any curation-blocked packages in this project?"
+
+The MCP server connects Copilot directly to JFrog Catalog data, returning CVS recommendations and policy information in context.
+
+**Talking point:** "Developers don't have to leave their IDE or know which JFrog screen to look at. The AI assistant has direct access to the same data driving your policies."
+
+---
+
+### 6. Frogbot — PR Scanning
+
+Create the demo PR:
+
+```bash
+./scripts/demo-create-pr.sh
+```
+
+This opens a PR from a branch that includes a vulnerable lodash version. Navigate to the PR on GitHub.
+
+Frogbot will automatically comment on the PR with:
+- A summary of vulnerabilities found
+- CVE details and severity
+- Recommended fix versions
+- Links to JFrog Catalog for each finding
+
+**Talking point:** "Every PR gets an automated security review. No manual intervention, no waiting for a security team. The developer sees exactly what needs fixing before the code is ever merged."
+
+---
+
+### 7. Fix It — Green Build
+
+Switch to clean dependencies and push:
+
+```bash
+npm run set-clean:no-install
+rm -rf node_modules app-api/node_modules app-ui/node_modules package-lock.json
+jf npm install
+git add package.json package-lock.json app-api/package.json app-ui/package.json
+git commit -m "fix: upgrade dependencies to resolve CVEs"
+git push
+```
+
+Wait for CI. Show the green build and the clean JFrog Job Summary — no curation blocks, no Xray violations.
+
+**Talking point:** "Same pipeline, same policies. Now everything passes. The Job Summary confirms it — clean install, clean scan, artifact promoted."
+
+---
+
+## Vulnerable Packages (for reference)
+
+| Package | Version | Severity | Block type | Fix version |
+|---|---|---|---|---|
+| axios | 0.21.1 | Critical 9.8 | Hard block, no waiver | 1.7.8 |
+| node-forge | 0.10.0 | High (up to 8.6) | Waiver available | 1.4.0 |
+| jsonwebtoken | 8.5.1 | High (up to 8.1) | Waiver available | 9.0.0 |
+| lodash | 4.17.19 | High 7.2 | Waiver available | 4.17.21 |
+| @hono/node-server | 1.19.7 | High 7.5 | Waiver available | 1.19.10 |
+
+---
+
+## Key Commands
+
+```bash
+# State switching (safe to run with no node_modules)
+npm run set-vulnerable:no-install
+npm run set-clean:no-install
+
+# Install through JFrog (CVS + curation active)
+jf npm install
+
+# Scanning
+jf curation-audit
+jf audit --working-dirs '.'
+
+# Demo scripts
+./scripts/demo-setup.sh          # pre-demo: flip to vulnerable + push
+./scripts/demo-create-pr.sh      # Frogbot demo: create vulnerable PR
+./scripts/demo-cleanup-pr.sh     # post-demo: close PR, delete branch
 ```
 
 ---
 
-## Advanced Demo Scenarios
+## What CVS Does (Conceptual)
 
-### Scenario: Curation Demo
+CVS filters the npm package **index** — not the download. When a package version is blocked by curation policy, CVS removes it from the list of available versions before npm resolves. So if you request `^7.0.0` and versions `7.15.0–7.24.x` are all blocked:
 
-1. Show package curation policies in JFrog Platform
-2. Attempt to use a blocked package
-3. Demonstrate curation blocking or approving packages
-4. Show audit trail of package approvals
+- **Without CVS**: npm resolves to `7.24.6`, curation blocks the download, build fails
+- **With CVS**: npm's index only shows versions up to `7.14.0`, resolves cleanly, build succeeds
 
-### Scenario: Environment Promotion
-
-1. Show build in DEV environment
-2. Promote to QA after security scan passes
-3. Demonstrate environment-specific policies
-4. Show promotion history and rollback capability
-
-### Scenario: Impact Analysis
-
-1. When a new CVE is discovered
-2. Show Xray's impact analysis
-3. Identify all affected builds and deployments
-4. Demonstrate rapid response capability
+CVS only works with version ranges (not pinned versions). It requires CVS to be enabled on the repository — there is no code change required.
 
 ---
 
 ## Troubleshooting
 
-### IDE Plugin Not Detecting Issues
+**State switcher fails (tsx not found):**
+Use the `:no-install` variants — they use `node` directly: `npm run set-clean:no-install`
 
-- Verify JFrog platform URL and credentials
-- Check that Xray is enabled
-- Refresh the plugin scan manually
-- Review plugin logs for errors
+**`jf npm install` blocks everything (vulnerable state):**
+That's correct — this is the demo. Use `jf curation-audit` against the lock file instead of trying to install the vulnerable state through JFrog.
 
-### FrogBot Not Commenting on PRs
+**Frogbot doesn't comment on the PR:**
+Check that the Frogbot GitHub App is installed and the `frogbot.yml` workflow is present. Frogbot runs on a schedule or on PR events depending on config — it may take a few minutes.
 
-- Verify GitHub App installation
-- Check GitHub secrets are configured
-- Review FrogBot workflow logs
-- Ensure repository permissions are correct
-
-### Dependencies Not Showing as Vulnerable
-
-- Verify you ran `npm run set-vulnerable`
-- Check `.current-state` file contents
-- Rebuild after state change: `npm run build`
-- Clear caches: `rm -rf node_modules && npm install`
-
----
-
-## Next Steps
-
-After the demo, consider:
-
-1. **Customize vulnerability states**: Edit `scripts/dependency-states.json` to include your specific packages
-2. **Add more vulnerable code patterns**: Extend `app-api/src/routes/vulnerable.ts`
-3. **Configure real JFrog CLI steps**: Update `.github/workflows/ci.yml` with your JFrog setup
-4. **Set up FrogBot**: Install and configure for automated PR scanning
-5. **Create custom policies**: Define your organization's security policies in Xray
-
----
-
-## Resources
-
-- [JFrog Xray Documentation](https://www.jfrog.com/confluence/display/JFROG/JFrog+Xray)
-- [FrogBot GitHub](https://github.com/jfrog/frogbot)
-- [JFrog IDE Plugins](https://www.jfrog.com/confluence/display/JFROG/IDE+Integration)
-- [JFrog CLI](https://www.jfrog.com/confluence/display/CLI/JFrog+CLI)
+**JFrog Job Summary not appearing:**
+The summary is generated by the `setup-jfrog-cli` post-step. It only appears if the `jfrog/setup-jfrog-cli@v5` action ran. Check the workflow uses `.github/actions/setup-jfrog-cli`.

@@ -7,7 +7,7 @@
       "dependencies": {
         "express": "^4.17.1",
         "cors": "^2.8.5",
-        "lodash": "^4.17.19",
+        "lodash": "4.17.19",
         "axios": "0.21.1",
         "jsonwebtoken": "8.5.1",
         "node-forge": "0.10.0",
@@ -133,12 +133,10 @@
     },
     "lodash-4.17.19": {
       "cves": ["CVE-2021-23337"],
-      "description": "Prototype pollution (7.2). Waiver available. CVS demo: range ^4.17.19 → CVS filters 4.17.19, npm resolves to 4.17.21",
+      "description": "Prototype pollution (7.2). Waiver available. CVS: upgrade to 4.17.21",
       "severity": "High",
       "waiver_allowed": true,
-      "cvs_recommendation": "4.17.21",
-      "cvs_demo": true,
-      "cvs_range": "^4.17.19"
+      "cvs_recommendation": "4.17.21"
     },
     "@hono/node-server-1.19.7": {
       "cves": ["CVE-2026-29087"],

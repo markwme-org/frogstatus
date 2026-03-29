@@ -51,8 +51,7 @@ function printStateInfo(targetState: string) {
     console.log('  - node-forge 0.10.0:       High CVEs (up to 8.6)    — waiver available       → CVS: 1.4.0');
     console.log('  - jsonwebtoken 8.5.1:      High CVEs (up to 8.1)    — waiver available       → CVS: 9.0.0');
     console.log('  - @hono/node-server 1.19.7 High CVE 7.5             — waiver available       → CVS: 1.19.10');
-    console.log('\n💡 CVS demo: lodash uses range ^4.17.19 — CVS filters 4.17.19, resolves to 4.17.21+');
-    console.log('💡 Check curation: jf curation-audit');
+    console.log('\n💡 Check curation: jf curation-audit');
     console.log('💡 IDE: Open VS Code with JFrog extension to see inline highlighting.');
   } else {
     console.log('\n✅ Application is now using CLEAN dependencies.');

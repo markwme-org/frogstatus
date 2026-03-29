@@ -1,10 +1,13 @@
 {
   "vulnerable": {
+    "overrides": {
+      "@hono/node-server": "1.19.7"
+    },
     "app-api": {
       "dependencies": {
         "express": "^4.17.1",
         "cors": "^2.8.5",
-        "lodash": "4.17.19",
+        "lodash": "^4.17.19",
         "axios": "0.21.1",
         "jsonwebtoken": "8.5.1",
         "node-forge": "0.10.0",
@@ -52,6 +55,9 @@
     }
   },
   "clean": {
+    "overrides": {
+      "@hono/node-server": "1.19.10"
+    },
     "app-api": {
       "dependencies": {
         "express": "^4.18.2",
@@ -104,30 +110,42 @@
     }
   },
   "vulnerabilityInfo": {
-    "lodash-4.17.19": {
-      "cves": ["CVE-2020-8203"],
-      "description": "Prototype pollution vulnerability",
-      "severity": "High"
-    },
     "axios-0.21.1": {
-      "cves": ["CVE-2021-3749"],
-      "description": "Server-Side Request Forgery (SSRF)",
-      "severity": "Medium"
-    },
-    "jsonwebtoken-8.5.1": {
-      "cves": ["CVE-2022-23529", "CVE-2022-23539", "CVE-2022-23540", "CVE-2022-23541"],
-      "description": "Multiple JWT verification bypass vulnerabilities",
-      "severity": "Critical"
+      "cves": ["CVE-2024-57965", "CVE-2026-25639", "CVE-2021-3749"],
+      "description": "CRITICAL (9.8) + High CVEs. Hard block — no waiver available. CVS: upgrade to 1.7.8",
+      "severity": "Critical",
+      "waiver_allowed": false,
+      "cvs_recommendation": "1.7.8"
     },
     "node-forge-0.10.0": {
-      "cves": ["CVE-2022-24771", "CVE-2022-24772", "CVE-2022-24773"],
-      "description": "Cryptographic vulnerabilities and signature forgery",
-      "severity": "High"
+      "cves": ["CVE-2025-12816", "CVE-2022-24771", "CVE-2022-24772"],
+      "description": "Multiple cryptographic CVEs (7.4–8.6). Waiver available. CVS: upgrade to 1.4.0",
+      "severity": "High",
+      "waiver_allowed": true,
+      "cvs_recommendation": "1.4.0"
     },
-    "express-4.17.1": {
-      "cves": ["CVE-2022-24999"],
-      "description": "Open redirect vulnerability",
-      "severity": "Medium"
+    "jsonwebtoken-8.5.1": {
+      "cves": ["CVE-2022-23539", "CVE-2022-23540"],
+      "description": "JWT verification bypass vulnerabilities (7.6–8.1). Waiver available. CVS: upgrade to 9.0.0",
+      "severity": "High",
+      "waiver_allowed": true,
+      "cvs_recommendation": "9.0.0"
+    },
+    "lodash-4.17.19": {
+      "cves": ["CVE-2021-23337"],
+      "description": "Prototype pollution (7.2). Waiver available. CVS demo: range ^4.17.19 → CVS filters 4.17.19, npm resolves to 4.17.21",
+      "severity": "High",
+      "waiver_allowed": true,
+      "cvs_recommendation": "4.17.21",
+      "cvs_demo": true,
+      "cvs_range": "^4.17.19"
+    },
+    "@hono/node-server-1.19.7": {
+      "cves": ["CVE-2026-29087"],
+      "description": "High CVE (7.5). Waiver available. CVS: upgrade to 1.19.10",
+      "severity": "High",
+      "waiver_allowed": true,
+      "cvs_recommendation": "1.19.10"
     }
   }
 }

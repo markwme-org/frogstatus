@@ -9,30 +9,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
 
-interface DependencyState {
-  dependencies: Record<string, string>;
-  devDependencies: Record<string, string>;
-}
-
-interface StateConfig {
-  vulnerable: {
-    'app-api': DependencyState;
-    'app-ui': DependencyState;
-    overrides?: Record<string, string>;
-  };
-  clean: {
-    'app-api': DependencyState;
-    'app-ui': DependencyState;
-    overrides?: Record<string, string>;
-  };
-}
-
-function loadStateConfig(): StateConfig {
+function loadStateConfig() {
   const configPath = join(__dirname, 'dependency-states.json');
   return JSON.parse(readFileSync(configPath, 'utf-8'));
 }
 
-function updatePackageJson(workspace: string, state: DependencyState) {
+function updatePackageJson(workspace, state) {
   const packagePath = join(rootDir, workspace, 'package.json');
   const pkg = JSON.parse(readFileSync(packagePath, 'utf-8'));
 
@@ -43,7 +25,7 @@ function updatePackageJson(workspace: string, state: DependencyState) {
   console.log(`✓ Updated ${workspace}/package.json`);
 }
 
-function printStateInfo(targetState: string) {
+function printStateInfo(targetState) {
   if (targetState === 'vulnerable') {
     console.log('\n⚠️  WARNING: Application is now using VULNERABLE dependencies!');
     console.log('\nCuration blocks (jf curation-audit):');
@@ -67,11 +49,11 @@ function printStateInfo(targetState: string) {
 
 function main() {
   const args = process.argv.slice(2);
-  const targetState = args[0] as 'vulnerable' | 'clean';
+  const targetState = args[0];
   const skipInstall = args.includes('--no-install');
 
   if (!targetState || !['vulnerable', 'clean'].includes(targetState)) {
-    console.error('Usage: npm run set-deps-state <vulnerable|clean> [--no-install]');
+    console.error('Usage: node scripts/set-deps-state.mjs <vulnerable|clean> [--no-install]');
     process.exit(1);
   }
 
@@ -105,7 +87,6 @@ function main() {
   console.log('This may take a moment...\n');
 
   try {
-    // Remove existing node_modules and lock file for clean install
     execSync('rm -rf node_modules package-lock.json app-api/node_modules app-ui/node_modules', {
       cwd: rootDir,
       stdio: 'inherit',

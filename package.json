@@ -12,9 +12,11 @@
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
-    "set-deps-state": "tsx scripts/set-deps-state.ts",
-    "set-vulnerable": "npm run set-deps-state vulnerable",
-    "set-clean": "npm run set-deps-state clean"
+    "set-deps-state": "node scripts/set-deps-state.mjs",
+    "set-vulnerable": "node scripts/set-deps-state.mjs vulnerable",
+    "set-clean": "node scripts/set-deps-state.mjs clean",
+    "set-vulnerable:no-install": "node scripts/set-deps-state.mjs vulnerable --no-install",
+    "set-clean:no-install": "node scripts/set-deps-state.mjs clean --no-install"
   },
   "devDependencies": {
     "tsx": "^4.7.0"

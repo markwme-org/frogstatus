@@ -14,25 +14,14 @@ function loadStateConfig() {
   return JSON.parse(readFileSync(configPath, 'utf-8'));
 }
 
-function updatePackageJson(workspace, state) {
-  const packagePath = join(rootDir, workspace, 'package.json');
-  const pkg = JSON.parse(readFileSync(packagePath, 'utf-8'));
-
-  pkg.dependencies = state.dependencies;
-  pkg.devDependencies = state.devDependencies;
-
-  writeFileSync(packagePath, JSON.stringify(pkg, null, 2) + '\n');
-  console.log(`✓ Updated ${workspace}/package.json`);
-}
-
 function printStateInfo(targetState) {
   if (targetState === 'vulnerable') {
     console.log('\n⚠️  WARNING: Application is now using VULNERABLE dependencies!');
     console.log('\nCuration blocks (jf curation-audit):');
-    console.log('  - axios 0.21.1:            CRITICAL 9.8 + High CVEs — hard block, no waiver  → CVS: 1.7.8');
-    console.log('  - node-forge 0.10.0:       High CVEs (up to 8.6)    — waiver available       → CVS: 1.4.0');
-    console.log('  - jsonwebtoken 8.5.1:      High CVEs (up to 8.1)    — waiver available       → CVS: 9.0.0');
-    console.log('  - @hono/node-server 1.19.7 High CVE 7.5             — waiver available       → CVS: 1.19.10');
+    console.log('  - axios 0.21.1:        CRITICAL 9.8 + High CVEs — hard block, no waiver  → CVS: 1.7.8');
+    console.log('  - node-forge 0.10.0:   High CVEs (up to 8.6)    — waiver available       → CVS: 1.4.0');
+    console.log('  - jsonwebtoken 8.5.1:  High CVEs (up to 8.1)    — waiver available       → CVS: 9.0.0');
+    console.log('  - lodash 4.17.19:      High CVE 7.2             — waiver available       → CVS: 4.17.21');
     console.log('\n💡 Check curation: jf curation-audit');
     console.log('💡 IDE: Open VS Code with JFrog extension to see inline highlighting.');
   } else {
@@ -41,9 +30,9 @@ function printStateInfo(targetState) {
   }
 
   console.log('\nNext steps:');
-  console.log('  1. Run tests: npm test');
+  console.log('  1. Start app: npm start');
   console.log('  2. Scan with JFrog IDE tools');
-  console.log('  3. Start dev server: npm run dev\n');
+  console.log('  3. Run audit: jf curation-audit\n');
 }
 
 function main() {
@@ -62,22 +51,17 @@ function main() {
   const config = loadStateConfig();
   const stateConfig = config[targetState];
 
-  console.log('Updating package.json files...');
-  updatePackageJson('app-api', stateConfig['app-api']);
-  updatePackageJson('app-ui', stateConfig['app-ui']);
-
-  if (stateConfig.overrides) {
-    const rootPkgPath = join(rootDir, 'package.json');
-    const rootPkg = JSON.parse(readFileSync(rootPkgPath, 'utf-8'));
-    rootPkg.overrides = { ...rootPkg.overrides, ...stateConfig.overrides };
-    writeFileSync(rootPkgPath, JSON.stringify(rootPkg, null, 2) + '\n');
-    console.log('✓ Updated root package.json overrides');
-  }
+  // Update root package.json dependencies
+  const rootPkgPath = join(rootDir, 'package.json');
+  const pkg = JSON.parse(readFileSync(rootPkgPath, 'utf-8'));
+  pkg.dependencies = stateConfig.dependencies;
+  writeFileSync(rootPkgPath, JSON.stringify(pkg, null, 2) + '\n');
+  console.log('✓ Updated package.json');
 
   if (skipInstall) {
     console.log('\n⏭️  Skipping install (--no-install). Run manually:');
-    console.log('  rm -rf node_modules app-api/node_modules app-ui/node_modules package-lock.json');
-    console.log('  jf npm install\n');
+    console.log('  rm -rf node_modules package-lock.json');
+    console.log('  npm install\n');
     printStateInfo(targetState);
     return;
   }
@@ -86,7 +70,7 @@ function main() {
   console.log('This may take a moment...\n');
 
   try {
-    execSync('rm -rf node_modules package-lock.json app-api/node_modules app-ui/node_modules', {
+    execSync('rm -rf node_modules package-lock.json', {
       cwd: rootDir,
       stdio: 'inherit',
     });
@@ -100,7 +84,7 @@ function main() {
     printStateInfo(targetState);
 
   } catch (error) {
-    console.error('\n❌ Error during dependency installation:', error);
+    console.error('\n❌ Error during dependency installation:', error.message);
     process.exit(1);
   }
 }

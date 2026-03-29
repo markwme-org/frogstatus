@@ -32,24 +32,25 @@ git checkout -b "$BRANCH" "origin/$BASE"
 
 echo ""
 echo "▶ Introducing vulnerable dependency..."
-# Add a pinned vulnerable version of lodash (known prototype pollution CVEs)
-# This is a deliberate demo choice — lodash 4.17.20 has CVE-2021-23337
+# Add express@4.17.1 — CVE-2022-24999 (CVSS 7.5, open redirect)
+# Not currently a dependency of frogstatus, so Frogbot always sees it as a new issue
+# regardless of whether main is in vulnerable or clean state.
 node -e "
 const fs = require('fs');
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 pkg.dependencies = pkg.dependencies || {};
-pkg.dependencies['lodash'] = '4.17.20';
+pkg.dependencies['express'] = '4.17.1';
 fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-console.log('Added lodash@4.17.20 to package.json');
+console.log('Added express@4.17.1 to package.json');
 "
 
 echo ""
 echo "▶ Committing..."
 git add package.json
-git commit -m "feat: add lodash utility library
+git commit -m "feat: add express for local API endpoint
 
-Adding lodash for array/object manipulation utilities needed
-for the new data processing features."
+Adding express to expose build metrics via a local HTTP endpoint
+for integration with the monitoring dashboard."
 
 echo ""
 echo "▶ Pushing branch..."
@@ -60,15 +61,15 @@ echo "▶ Creating pull request..."
 gh pr create \
   --base "$BASE" \
   --head "$BRANCH" \
-  --title "feat: add lodash utility library" \
+  --title "feat: add express for local API endpoint" \
   --body "$(cat <<'EOF'
 ## Summary
 
-Adding lodash for array and object manipulation utilities needed for upcoming data processing features.
+Adding express to expose build metrics via a local HTTP endpoint for integration with the monitoring dashboard.
 
 ## Changes
 
-- Added `lodash` dependency to `package.json`
+- Added `express` dependency to `package.json`
 
 ## Testing
 

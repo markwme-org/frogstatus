@@ -44,12 +44,6 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v6
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-
       - name: Publish build info
         env:
           # Suppress build-publish from writing to the Job Summary — build-scan
@@ -137,7 +131,7 @@ jobs:
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
         run: |
           curl -sf -u "${SONAR_TOKEN}:" \
-            "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=frogstatus" \
+            "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=markwme-org_frogstatus" \
             -o sonar-gate.json
           echo "Quality gate: $(jq -r '.projectStatus.status' sonar-gate.json)"
 

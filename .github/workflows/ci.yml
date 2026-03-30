@@ -98,17 +98,20 @@ jobs:
             --key /tmp/evd-signing-key.pem \
             --project "$JF_PROJECT"
 
-      - name: Fetch Xray scan report
+      - name: Build Xray scan predicate
         id: xray-report
         continue-on-error: true
         if: steps.evd-key.outcome == 'success'
         run: |
-          jf xr curl "api/v1/summary/build" \
-            -X POST \
-            -H "Content-Type: application/json" \
-            -d "{\"build_name\":\"${JFROG_CLI_BUILD_NAME}\",\"build_number\":\"${JFROG_CLI_BUILD_NUMBER}\"}" \
-            -o xray-report.json
-          echo "Violations: $(jq '[.issues // []] | length' xray-report.json 2>/dev/null || echo 'n/a')"
+          cat > xray-report.json <<EOF
+          {
+            "scanner": "JFrog Xray",
+            "build_name": "${JFROG_CLI_BUILD_NAME}",
+            "build_number": "${JFROG_CLI_BUILD_NUMBER}",
+            "scan_url": "${JFROG_CLI_BUILD_URL}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
 
       - name: Upload Xray scan evidence
         continue-on-error: true

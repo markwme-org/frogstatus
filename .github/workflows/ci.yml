@@ -152,6 +152,7 @@ jobs:
           echo "tag=${JF_HOST}/${{ vars.JF_DOCKER_REPOSITORY }}/frogstatus:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push Docker image
+        id: docker-push
         env:
           JF_NPM_REPOSITORY: ${{ vars.JF_NPM_REPOSITORY }}
           DOCKER_BUILDKIT: 1
@@ -162,6 +163,24 @@ jobs:
             --secret id=jfrog_config,src=$HOME/.jfrog/jfrog-cli.conf.v6 \
             -t ${{ steps.docker-tag.outputs.tag }} .
           jf docker push ${{ steps.docker-tag.outputs.tag }}
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${{ steps.docker-tag.outputs.tag }} | grep -oE 'sha256:[a-f0-9]+')
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Attest build provenance
+        id: attest
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.docker-tag.outputs.tag }}
+          subject-digest: ${{ steps.docker-push.outputs.digest }}
+
+      - name: Upload attestation as JFrog evidence
+        continue-on-error: true
+        run: |
+          jf evd create \
+            --sigstore-bundle "${{ steps.attest.outputs.bundle-path }}" \
+            --build-name "$JFROG_CLI_BUILD_NAME" \
+            --build-number "$JFROG_CLI_BUILD_NUMBER" \
+            --project "$JF_PROJECT"
 
       - name: Scan Docker image
         run: jf docker scan ${{ steps.docker-tag.outputs.tag }} --project "$JF_PROJECT" --vuln --fail=false

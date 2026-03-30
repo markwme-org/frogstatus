@@ -2,9 +2,9 @@
     "builds": [
    {
      "name": "FrogStatus CI Build",
-     "number": "86",
-     "repository_key": "mwfs-build-info",
-     "include_dependencies": false
+     "number": "157",
+     "repository_key": "fs-build-info",
+     "include_dependencies":true 
    }
  ]
 }

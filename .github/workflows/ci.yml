@@ -96,6 +96,7 @@ jobs:
             --build-name "$JFROG_CLI_BUILD_NAME" \
             --build-number "$JFROG_CLI_BUILD_NUMBER" \
             --key /tmp/evd-signing-key.pem \
+            --key-alias "${{ vars.JF_EVD_KEY_ALIAS }}" \
             --project "$JF_PROJECT"
 
       - name: Build Xray scan predicate
@@ -123,31 +124,22 @@ jobs:
             --build-name "$JFROG_CLI_BUILD_NAME" \
             --build-number "$JFROG_CLI_BUILD_NUMBER" \
             --key /tmp/evd-signing-key.pem \
+            --key-alias "${{ vars.JF_EVD_KEY_ALIAS }}" \
             --project "$JF_PROJECT"
 
-      - name: Fetch SonarQube quality gate result
-        id: sonar-gate
+      - name: Upload SonarQube evidence
         continue-on-error: true
         if: steps.evd-key.outcome == 'success'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
         run: |
-          curl -sf -u "${SONAR_TOKEN}:" \
-            "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=markwme-org_frogstatus" \
-            -o sonar-gate.json
-          echo "Quality gate: $(jq -r '.projectStatus.status' sonar-gate.json)"
-
-      - name: Upload SonarQube evidence
-        continue-on-error: true
-        if: steps.sonar-gate.outcome == 'success'
-        run: |
           jf evd create \
-            --predicate sonar-gate.json \
-            --predicate-type "https://frogstatus.demo/evidence/sonarqube-community/v1" \
+            --integration sonar \
             --build-name "$JFROG_CLI_BUILD_NAME" \
             --build-number "$JFROG_CLI_BUILD_NUMBER" \
             --key /tmp/evd-signing-key.pem \
+            --key-alias "${{ vars.JF_EVD_KEY_ALIAS }}" \
             --project "$JF_PROJECT"
 
       - name: Clean up signing key

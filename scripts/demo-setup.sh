@@ -25,13 +25,17 @@ echo "▶ Switching to vulnerable dependency state..."
 npm run set-vulnerable:no-install
 
 echo ""
+echo "▶ Installing vulnerable packages directly from npmjs.org (bypassing curation)..."
+npm install --registry https://registry.npmjs.org
+
+echo ""
 echo "▶ Cleaning up any leftover demo PRs..."
 "$SCRIPT_DIR/demo-cleanup-pr.sh" 2>/dev/null || true
 
 if [[ "$PUSH" == true ]]; then
   echo ""
   echo "▶ Committing and pushing to trigger CI failure..."
-  git add package.json
+  git add package.json package-lock.json
   git diff --cached --quiet && echo "  Nothing to commit (already in vulnerable state)" || \
     git commit -m "demo: switch to vulnerable dependencies"
   git push

@@ -2,7 +2,7 @@
     "builds": [
    {
      "name": "FrogStatus CI Build",
-     "number": "159",
+     "number": "160",
      "repository_key": "fs-build-info",
      "include_dependencies":true 
    }

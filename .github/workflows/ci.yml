@@ -58,64 +58,6 @@ jobs:
       - name: Xray scan build
         run: jf build-scan --project "$JF_PROJECT" --vuln --fail=false
 
-      - name: Check evidence configuration
-        id: evd-key
-        continue-on-error: true
-        env:
-          JF_EVD_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
-        run: |
-          [ -z "$JF_EVD_SIGNING_KEY" ] && echo "JF_EVD_SIGNING_KEY not configured — skipping evidence" && exit 1
-          echo "Evidence signing key present"
-
-      - name: Extract SBOM from Xray
-        id: sbom
-        continue-on-error: true
-        if: steps.evd-key.outcome == 'success'
-        run: |
-          jf xr curl "api/v1/component/exportDetails" \
-            -X POST \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"component_name\": \"build://${JFROG_CLI_BUILD_NAME}:${JFROG_CLI_BUILD_NUMBER}\",
-              \"package_type\": \"build\",
-              \"cyclonedx\": true,
-              \"cyclonedx_format\": \"json\"
-            }" \
-            -o sbom.zip
-          unzip -p sbom.zip > sbom.json
-          jq -e '.bomFormat' sbom.json >/dev/null
-          echo "Components: $(jq '.components | length' sbom.json)"
-
-      - name: Upload SBOM evidence
-        continue-on-error: true
-        if: steps.sbom.outcome == 'success'
-        env:
-          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
-          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
-        run: |
-          jf evd create \
-            --predicate sbom.json \
-            --predicate-type "https://cyclonedx.org/bom/v1.6" \
-            --build-name "$JFROG_CLI_BUILD_NAME" \
-            --build-number "$JFROG_CLI_BUILD_NUMBER" \
-            --project "$JF_PROJECT"
-
-
-      - name: Upload SonarQube evidence
-        continue-on-error: true
-        if: steps.evd-key.outcome == 'success'
-        env:
-          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
-          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-        run: |
-          jf evd create \
-            --integration sonar \
-            --build-name "$JFROG_CLI_BUILD_NAME" \
-            --build-number "$JFROG_CLI_BUILD_NUMBER" \
-            --project "$JF_PROJECT"
-
       - name: Build Docker image tag
         id: docker-tag
         run: |
@@ -138,15 +80,31 @@ jobs:
           jf docker push ${{ steps.docker-tag.outputs.tag }}
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${{ steps.docker-tag.outputs.tag }} | grep -oE 'sha256:[a-f0-9]+')
           echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          # Manifest path in JFrog: <repo>/<image>/<tag>/manifest.json
+          IMAGE_PATH="${{ vars.JF_DOCKER_REPOSITORY }}/frogstatus/${GITHUB_SHA::7}/manifest.json"
+          echo "manifest_path=${IMAGE_PATH}" >> "$GITHUB_OUTPUT"
 
       - name: Attest build provenance
         id: attest
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ steps.docker-tag.outputs.tag }}
+          subject-name: oci://${{ steps.docker-tag.outputs.tag }}
           subject-digest: ${{ steps.docker-push.outputs.digest }}
 
-      - name: Upload attestation as JFrog evidence
+      - name: Upload SonarQube evidence
+        continue-on-error: true
+        env:
+          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
+          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+        run: |
+          jf evd create \
+            --integration sonar \
+            --subject-repo-path "${{ steps.docker-push.outputs.manifest_path }}" \
+            --project "$JF_PROJECT"
+
+      - name: Upload SLSA provenance as JFrog evidence
         continue-on-error: true
         env:
           JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
@@ -156,8 +114,7 @@ jobs:
           jf evd create \
             --predicate slsa-provenance.json \
             --predicate-type "https://slsa.dev/provenance/v1" \
-            --build-name "$JFROG_CLI_BUILD_NAME" \
-            --build-number "$JFROG_CLI_BUILD_NUMBER" \
+            --subject-repo-path "${{ steps.docker-push.outputs.manifest_path }}" \
             --project "$JF_PROJECT"
 
       - name: Scan Docker image

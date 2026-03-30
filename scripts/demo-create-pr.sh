@@ -45,8 +45,12 @@ console.log('Added express@4.17.1 to package.json');
 "
 
 echo ""
+echo "▶ Updating package-lock.json (required for Frogbot to resolve express)..."
+npm install --package-lock-only --registry https://registry.npmjs.org
+
+echo ""
 echo "▶ Committing..."
-git add package.json
+git add package.json package-lock.json
 git commit -m "feat: add express for local API endpoint
 
 Adding express to expose build metrics via a local HTTP endpoint

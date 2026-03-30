@@ -16,7 +16,7 @@
   "dependencies": {
     "axios": "1.14.0",
     "blessed": "^0.1.81",
-    "jsonwebtoken": "9.0.3",
+    "jsonwebtoken": "^9.0.0",
     "lodash": "4.17.23",
     "node-forge": "1.4.0"
   },

@@ -91,7 +91,6 @@ jobs:
         env:
           JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
           JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
-          JF_ACCESS_TOKEN: ${{ secrets.JF_EVIDENCE_ACCESS_TOKEN }}
         run: |
           jf evd create \
             --predicate sbom.json \
@@ -121,7 +120,6 @@ jobs:
         env:
           JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
           JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
-          JF_ACCESS_TOKEN: ${{ secrets.JF_EVIDENCE_ACCESS_TOKEN }}
         run: |
           jf evd create \
             --predicate xray-report.json \
@@ -136,7 +134,6 @@ jobs:
         env:
           JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
           JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
-          JF_ACCESS_TOKEN: ${{ secrets.JF_EVIDENCE_ACCESS_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
         run: |

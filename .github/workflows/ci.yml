@@ -175,9 +175,14 @@ jobs:
 
       - name: Upload attestation as JFrog evidence
         continue-on-error: true
+        env:
+          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
+          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
         run: |
+          jq -r '.dsseEnvelope.payload' "${{ steps.attest.outputs.bundle-path }}" | base64 -d > slsa-provenance.json
           jf evd create \
-            --sigstore-bundle "${{ steps.attest.outputs.bundle-path }}" \
+            --predicate slsa-provenance.json \
+            --predicate-type "https://slsa.dev/provenance/v1" \
             --build-name "$JFROG_CLI_BUILD_NAME" \
             --build-number "$JFROG_CLI_BUILD_NUMBER" \
             --project "$JF_PROJECT"

@@ -58,15 +58,14 @@ jobs:
       - name: Xray scan build
         run: jf build-scan --project "$JF_PROJECT" --vuln --fail=false
 
-      - name: Write evidence signing key
+      - name: Check evidence configuration
         id: evd-key
         continue-on-error: true
         env:
           JF_EVD_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
         run: |
           [ -z "$JF_EVD_SIGNING_KEY" ] && echo "JF_EVD_SIGNING_KEY not configured — skipping evidence" && exit 1
-          printf '%s' "$JF_EVD_SIGNING_KEY" > /tmp/evd-signing-key.pem
-          chmod 600 /tmp/evd-signing-key.pem
+          echo "Evidence signing key present"
 
       - name: Extract SBOM from Xray
         id: sbom
@@ -89,14 +88,16 @@ jobs:
       - name: Upload SBOM evidence
         continue-on-error: true
         if: steps.sbom.outcome == 'success'
+        env:
+          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
+          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_EVIDENCE_ACCESS_TOKEN }}
         run: |
           jf evd create \
             --predicate sbom.json \
             --predicate-type "https://cyclonedx.org/bom/v1.6" \
             --build-name "$JFROG_CLI_BUILD_NAME" \
             --build-number "$JFROG_CLI_BUILD_NUMBER" \
-            --key /tmp/evd-signing-key.pem \
-            --key-alias "${{ vars.JF_EVD_KEY_ALIAS }}" \
             --project "$JF_PROJECT"
 
       - name: Build Xray scan predicate
@@ -117,20 +118,25 @@ jobs:
       - name: Upload Xray scan evidence
         continue-on-error: true
         if: steps.xray-report.outcome == 'success'
+        env:
+          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
+          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_EVIDENCE_ACCESS_TOKEN }}
         run: |
           jf evd create \
             --predicate xray-report.json \
             --predicate-type "https://jfrog.com/evidence/xray-vulnerability-report/v1" \
             --build-name "$JFROG_CLI_BUILD_NAME" \
             --build-number "$JFROG_CLI_BUILD_NUMBER" \
-            --key /tmp/evd-signing-key.pem \
-            --key-alias "${{ vars.JF_EVD_KEY_ALIAS }}" \
             --project "$JF_PROJECT"
 
       - name: Upload SonarQube evidence
         continue-on-error: true
         if: steps.evd-key.outcome == 'success'
         env:
+          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
+          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_EVIDENCE_ACCESS_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
         run: |
@@ -138,13 +144,7 @@ jobs:
             --integration sonar \
             --build-name "$JFROG_CLI_BUILD_NAME" \
             --build-number "$JFROG_CLI_BUILD_NUMBER" \
-            --key /tmp/evd-signing-key.pem \
-            --key-alias "${{ vars.JF_EVD_KEY_ALIAS }}" \
             --project "$JF_PROJECT"
-
-      - name: Clean up signing key
-        if: always()
-        run: rm -f /tmp/evd-signing-key.pem
 
       - name: Build Docker image tag
         id: docker-tag

@@ -72,10 +72,11 @@ jobs:
         id: curation-audit
         continue-on-error: true
         run: |
-          jf curation-audit --format json 2>/dev/null | sed -n '/^\[/,$ p' > curation-audit.json
-          [ -s curation-audit.json ] || echo '[]' > curation-audit.json
-          jq -e 'type == "array"' curation-audit.json >/dev/null
-          echo "Blocked packages: $(jq 'length' curation-audit.json)"
+          RAW=$(jf curation-audit --format json 2>/dev/null | sed -n '/^\[/,$ p')
+          [ -z "$RAW" ] && RAW='[]'
+          echo "{\"blocked_packages\": ${RAW}}" > curation-audit.json
+          jq -e '.blocked_packages | type == "array"' curation-audit.json >/dev/null
+          echo "Blocked packages: $(jq '.blocked_packages | length' curation-audit.json)"
 
       - name: Build Docker image tag
         id: docker-tag
@@ -146,19 +147,6 @@ jobs:
         run: |
           jf evd create \
             --integration sonar \
-            --subject-repo-path "${{ steps.docker-push.outputs.manifest_path }}" \
-            --project "$JF_PROJECT"
-
-      - name: Upload SLSA provenance as JFrog evidence
-        continue-on-error: true
-        env:
-          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
-          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
-        run: |
-          jq -r '.dsseEnvelope.payload' "${{ steps.attest.outputs.bundle-path }}" | base64 -d > slsa-provenance.json
-          jf evd create \
-            --predicate slsa-provenance.json \
-            --predicate-type "https://slsa.dev/provenance/v1" \
             --subject-repo-path "${{ steps.docker-push.outputs.manifest_path }}" \
             --project "$JF_PROJECT"
 

@@ -58,6 +58,25 @@ jobs:
       - name: Xray scan build
         run: jf build-scan --project "$JF_PROJECT" --vuln --fail=false
 
+      - name: Secrets scan
+        id: secrets-scan
+        continue-on-error: true
+        run: |
+          jf audit --secrets --format simple-json 2>/dev/null | \
+            jq '{secrets: [.secrets[]? | {severity, ruleId, file, startLine, endLine, finding}], scansStatus: .scansStatus}' \
+            > secrets-scan.json
+          jq -e 'has("secrets")' secrets-scan.json >/dev/null
+          echo "Secrets found: $(jq '.secrets | length' secrets-scan.json)"
+
+      - name: Curation audit
+        id: curation-audit
+        continue-on-error: true
+        run: |
+          jf curation-audit --format json 2>/dev/null | sed -n '/^\[/,$ p' > curation-audit.json
+          [ -s curation-audit.json ] || echo '[]' > curation-audit.json
+          jq -e 'type == "array"' curation-audit.json >/dev/null
+          echo "Blocked packages: $(jq 'length' curation-audit.json)"
+
       - name: Build Docker image tag
         id: docker-tag
         run: |
@@ -90,6 +109,32 @@ jobs:
         with:
           subject-name: oci://${{ steps.docker-tag.outputs.tag }}
           subject-digest: ${{ steps.docker-push.outputs.digest }}
+
+      - name: Upload secrets scan evidence
+        continue-on-error: true
+        if: steps.secrets-scan.outcome == 'success'
+        env:
+          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
+          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
+        run: |
+          jf evd create \
+            --predicate secrets-scan.json \
+            --predicate-type "https://jfrog.com/evidence/secret-detection/v1" \
+            --subject-repo-path "${{ steps.docker-push.outputs.manifest_path }}" \
+            --project "$JF_PROJECT"
+
+      - name: Upload curation audit evidence
+        continue-on-error: true
+        if: steps.curation-audit.outcome == 'success'
+        env:
+          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
+          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
+        run: |
+          jf evd create \
+            --predicate curation-audit.json \
+            --predicate-type "https://jfrog.com/evidence/curation-audit/v1" \
+            --subject-repo-path "${{ steps.docker-push.outputs.manifest_path }}" \
+            --project "$JF_PROJECT"
 
       - name: Upload SonarQube evidence
         continue-on-error: true

@@ -11,6 +11,7 @@ permissions:
   contents: read
   id-token: write
   security-events: write
+  attestations: write
 
 env:
   JF_URL: ${{ vars.JF_URL }}
@@ -43,6 +44,12 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+
       - name: Publish build info
         env:
           # Suppress build-publish from writing to the Job Summary — build-scan
@@ -56,6 +63,99 @@ jobs:
 
       - name: Xray scan build
         run: jf build-scan --project "$JF_PROJECT" --vuln --fail=false
+
+      - name: Write evidence signing key
+        id: evd-key
+        continue-on-error: true
+        env:
+          JF_EVD_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
+        run: |
+          [ -z "$JF_EVD_SIGNING_KEY" ] && echo "JF_EVD_SIGNING_KEY not configured — skipping evidence" && exit 1
+          printf '%s' "$JF_EVD_SIGNING_KEY" > /tmp/evd-signing-key.pem
+          chmod 600 /tmp/evd-signing-key.pem
+
+      - name: Extract SBOM from Xray
+        id: sbom
+        continue-on-error: true
+        if: steps.evd-key.outcome == 'success'
+        run: |
+          jf xr curl "api/v2/component/exportDetails" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"component_name\": \"${JFROG_CLI_BUILD_NAME}/${JFROG_CLI_BUILD_NUMBER}\",
+              \"package_type\": \"build\",
+              \"cyclonedx\": true,
+              \"cyclonedx_format\": \"json\",
+              \"output_format\": \"raw\"
+            }" \
+            -o sbom.json
+          echo "Components: $(jq '.components | length' sbom.json 2>/dev/null || echo 'n/a')"
+
+      - name: Upload SBOM evidence
+        continue-on-error: true
+        if: steps.sbom.outcome == 'success'
+        run: |
+          jf evd create \
+            --predicate sbom.json \
+            --predicate-type "https://cyclonedx.org/bom/v1.6" \
+            --build-name "$JFROG_CLI_BUILD_NAME" \
+            --build-number "$JFROG_CLI_BUILD_NUMBER" \
+            --key /tmp/evd-signing-key.pem \
+            --project "$JF_PROJECT"
+
+      - name: Fetch Xray scan report
+        id: xray-report
+        continue-on-error: true
+        if: steps.evd-key.outcome == 'success'
+        run: |
+          jf xr curl "api/v1/summary/build" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"build_name\":\"${JFROG_CLI_BUILD_NAME}\",\"build_number\":\"${JFROG_CLI_BUILD_NUMBER}\"}" \
+            -o xray-report.json
+          echo "Violations: $(jq '[.issues // []] | length' xray-report.json 2>/dev/null || echo 'n/a')"
+
+      - name: Upload Xray scan evidence
+        continue-on-error: true
+        if: steps.xray-report.outcome == 'success'
+        run: |
+          jf evd create \
+            --predicate xray-report.json \
+            --predicate-type "https://jfrog.com/evidence/xray-vulnerability-report/v1" \
+            --build-name "$JFROG_CLI_BUILD_NAME" \
+            --build-number "$JFROG_CLI_BUILD_NUMBER" \
+            --key /tmp/evd-signing-key.pem \
+            --project "$JF_PROJECT"
+
+      - name: Fetch SonarQube quality gate result
+        id: sonar-gate
+        continue-on-error: true
+        if: steps.evd-key.outcome == 'success'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+        run: |
+          curl -sf -u "${SONAR_TOKEN}:" \
+            "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=frogstatus" \
+            -o sonar-gate.json
+          echo "Quality gate: $(jq -r '.projectStatus.status' sonar-gate.json)"
+
+      - name: Upload SonarQube evidence
+        continue-on-error: true
+        if: steps.sonar-gate.outcome == 'success'
+        run: |
+          jf evd create \
+            --predicate sonar-gate.json \
+            --predicate-type "https://frogstatus.demo/evidence/sonarqube-community/v1" \
+            --build-name "$JFROG_CLI_BUILD_NAME" \
+            --build-number "$JFROG_CLI_BUILD_NUMBER" \
+            --key /tmp/evd-signing-key.pem \
+            --project "$JF_PROJECT"
+
+      - name: Clean up signing key
+        if: always()
+        run: rm -f /tmp/evd-signing-key.pem
 
       - name: Build Docker image tag
         id: docker-tag

@@ -72,18 +72,19 @@ jobs:
         continue-on-error: true
         if: steps.evd-key.outcome == 'success'
         run: |
-          jf xr curl "api/v2/component/exportDetails" \
+          jf xr curl "api/v1/component/exportDetails" \
             -X POST \
             -H "Content-Type: application/json" \
             -d "{
-              \"component_name\": \"${JFROG_CLI_BUILD_NAME}/${JFROG_CLI_BUILD_NUMBER}\",
+              \"component_name\": \"build://${JFROG_CLI_BUILD_NAME}:${JFROG_CLI_BUILD_NUMBER}\",
               \"package_type\": \"build\",
               \"cyclonedx\": true,
-              \"cyclonedx_format\": \"json\",
-              \"output_format\": \"raw\"
+              \"cyclonedx_format\": \"json\"
             }" \
-            -o sbom.json
-          echo "Components: $(jq '.components | length' sbom.json 2>/dev/null || echo 'n/a')"
+            -o sbom.zip
+          unzip -p sbom.zip > sbom.json
+          jq -e '.bomFormat' sbom.json >/dev/null
+          echo "Components: $(jq '.components | length' sbom.json)"
 
       - name: Upload SBOM evidence
         continue-on-error: true
@@ -99,34 +100,6 @@ jobs:
             --build-number "$JFROG_CLI_BUILD_NUMBER" \
             --project "$JF_PROJECT"
 
-      - name: Build Xray scan predicate
-        id: xray-report
-        continue-on-error: true
-        if: steps.evd-key.outcome == 'success'
-        run: |
-          cat > xray-report.json <<EOF
-          {
-            "scanner": "JFrog Xray",
-            "build_name": "${JFROG_CLI_BUILD_NAME}",
-            "build_number": "${JFROG_CLI_BUILD_NUMBER}",
-            "scan_url": "${JFROG_CLI_BUILD_URL}",
-            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          }
-          EOF
-
-      - name: Upload Xray scan evidence
-        continue-on-error: true
-        if: steps.xray-report.outcome == 'success'
-        env:
-          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
-          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
-        run: |
-          jf evd create \
-            --predicate xray-report.json \
-            --predicate-type "https://jfrog.com/evidence/xray-vulnerability-report/v1" \
-            --build-name "$JFROG_CLI_BUILD_NAME" \
-            --build-number "$JFROG_CLI_BUILD_NUMBER" \
-            --project "$JF_PROJECT"
 
       - name: Upload SonarQube evidence
         continue-on-error: true

@@ -94,5 +94,10 @@ echo ""
 echo "   To clean up after the demo, run:"
 echo "   ./scripts/demo-cleanup-pr.sh"
 
-# Return to the original branch
-git checkout "$BASE" 2>/dev/null || git checkout main
+# Restore the operator's working branch (demo/vulnerable-dependency tracking origin/main).
+# We can't switch directly to it because it currently tracks origin/demo/vulnerable-dependency
+# (the PR branch), so we go via main and recreate it.
+git checkout main
+git pull --rebase origin main
+git branch -D "$BRANCH" 2>/dev/null || true
+git checkout -b "$BRANCH" --track origin/main

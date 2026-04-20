@@ -48,6 +48,10 @@ if [[ "$PUSH" == true ]]; then
   git diff --cached --quiet && echo "  Nothing to commit (already in vulnerable state)" || \
     git commit -m "demo: switch to vulnerable dependencies"
 
+  # Pull any remote changes before pushing to avoid non-fast-forward rejections.
+  # Use rebase to keep a linear history; preserve our local commit on top.
+  git pull --rebase origin main
+
   git push origin HEAD:main
 
   echo ""

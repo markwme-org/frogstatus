@@ -21,6 +21,15 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$REPO_ROOT"
 
+# Verify the local branch is set up to push to origin/main (required to trigger CI).
+# The demo branch is a local convenience branch; commits must land on main.
+UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)
+if [[ "$UPSTREAM" != "origin/main" ]]; then
+  echo "⚠  Error: expected upstream to be 'origin/main' but got '${UPSTREAM:-<none>}'."
+  echo "   Fix with: git branch --set-upstream-to=origin/main"
+  exit 1
+fi
+
 echo "▶ Switching to vulnerable dependency state..."
 npm run set-vulnerable:no-install
 
@@ -38,7 +47,8 @@ if [[ "$PUSH" == true ]]; then
   git add package.json package-lock.json
   git diff --cached --quiet && echo "  Nothing to commit (already in vulnerable state)" || \
     git commit -m "demo: switch to vulnerable dependencies"
-  git push
+
+  git push origin HEAD:main
 
   echo ""
   echo "▶ CI build triggered. Wait for it to fail, then start the demo."

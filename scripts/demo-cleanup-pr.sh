@@ -21,6 +21,11 @@ git push origin --delete "$BRANCH" 2>/dev/null && echo "  Remote branch deleted"
 
 echo ""
 echo "▶ Deleting local branch..."
+# Switch away first so we can delete the branch if we're currently on it
+if [[ "$(git symbolic-ref --short HEAD)" == "$BRANCH" ]]; then
+  git checkout -- package.json package-lock.json
+  git checkout main
+fi
 git branch -D "$BRANCH" 2>/dev/null && echo "  Local branch deleted" || echo "  Local branch not found"
 
 echo ""

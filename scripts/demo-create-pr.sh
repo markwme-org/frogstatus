@@ -23,6 +23,11 @@ echo ""
 echo "▶ Closing any existing demo PR for branch: $BRANCH"
 gh pr close "$BRANCH" --delete-branch 2>/dev/null || true
 git push origin --delete "$BRANCH" 2>/dev/null || true
+# Switch away first so we can delete the branch if we're currently on it
+if [[ "$(git symbolic-ref --short HEAD)" == "$BRANCH" ]]; then
+  git checkout -- package.json package-lock.json
+  git checkout main
+fi
 git branch -D "$BRANCH" 2>/dev/null || true
 
 echo ""

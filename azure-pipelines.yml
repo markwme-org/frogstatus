@@ -23,10 +23,10 @@ variables:
 steps:
   - checkout: self
 
-  - task: NodeTool@0
+  - task: UseNode@1
     displayName: Setup Node.js 24.x
     inputs:
-      versionSpec: '24.x'
+      version: '24.x'
 
   - task: JfrogCliV2@1
     displayName: Setup JFrog CLI

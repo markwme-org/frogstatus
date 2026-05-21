@@ -38,7 +38,7 @@ steps:
     displayName: Install dependencies
     inputs:
       command: install
-      artifactoryConnection: jfrog-mwldn
+      artifactoryConnection: jfrog-mwldn-artifactory
       sourceRepo: $(JF_NPM_REPOSITORY)
       collectBuildInfo: true
       buildName: $(JFROG_CLI_BUILD_NAME)
@@ -57,14 +57,14 @@ steps:
   - task: JFrogPublishBuildInfo@1
     displayName: Publish build info
     inputs:
-      artifactoryConnection: jfrog-mwldn
+      artifactoryConnection: jfrog-mwldn-artifactory
       buildName: $(JFROG_CLI_BUILD_NAME)
       buildNumber: $(JFROG_CLI_BUILD_NUMBER)
 
   - task: JFrogBuildScan@1
     displayName: Xray scan build
     inputs:
-      xrayConnection: jfrog-mwldn
+      xrayConnection: jfrog-mwldn-xray
       buildName: $(JFROG_CLI_BUILD_NAME)
       buildNumber: $(JFROG_CLI_BUILD_NUMBER)
       allowFailBuild: false
@@ -114,7 +114,7 @@ steps:
     displayName: Push Docker image
     inputs:
       command: push
-      artifactoryConnection: jfrog-mwldn
+      artifactoryConnection: jfrog-mwldn-artifactory
       imageName: $(DOCKER_TAG)
       collectBuildInfo: true
       buildName: $(JFROG_CLI_BUILD_NAME)
@@ -154,6 +154,6 @@ steps:
     displayName: Scan Docker image
     inputs:
       command: scan
-      xrayConnection: jfrog-mwldn
+      xrayConnection: jfrog-mwldn-xray
       imageName: $(DOCKER_TAG)
       allowFailBuild: false

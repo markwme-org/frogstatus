@@ -1,24 +1,159 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
-- main
+  branches:
+    include:
+      - main
+      - develop
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
 
 pool:
   vmImage: ubuntu-latest
 
+variables:
+  - group: jfrog-config
+  - name: JFROG_CLI_BUILD_NAME
+    value: $(Build.DefinitionName)
+  - name: JFROG_CLI_BUILD_NUMBER
+    value: $(Build.BuildNumber)
+
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+  - checkout: self
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+  - task: NodeTool@0
+    displayName: Setup Node.js 24.x
+    inputs:
+      versionSpec: '24.x'
 
-- task: JfrogCliV2@1
-  inputs:
-    jfrogPlatformConnection: 'jfrog-mwldn'
-    command: 'jf rt ping'
+  - task: JfrogCliV2@1
+    displayName: Setup JFrog CLI
+    inputs:
+      jfrogPlatformConnection: jfrog-mwldn
+      command: jf rt ping
+
+  - task: JFrogNpm@1
+    displayName: Install dependencies
+    inputs:
+      command: install
+      artifactoryConnection: jfrog-mwldn
+      sourceRepo: $(JF_NPM_REPOSITORY)
+      collectBuildInfo: true
+      buildName: $(JFROG_CLI_BUILD_NAME)
+      buildNumber: $(JFROG_CLI_BUILD_NUMBER)
+      includeEnvVars: true
+
+  - script: npm run build
+    displayName: Build application
+
+  - task: JfrogCliV2@1
+    displayName: Add git info to build
+    inputs:
+      jfrogPlatformConnection: jfrog-mwldn
+      command: jf rt build-add-git
+
+  - task: JFrogPublishBuildInfo@1
+    displayName: Publish build info
+    inputs:
+      artifactoryConnection: jfrog-mwldn
+      buildName: $(JFROG_CLI_BUILD_NAME)
+      buildNumber: $(JFROG_CLI_BUILD_NUMBER)
+
+  - task: JFrogBuildScan@1
+    displayName: Xray scan build
+    inputs:
+      xrayConnection: jfrog-mwldn
+      buildName: $(JFROG_CLI_BUILD_NAME)
+      buildNumber: $(JFROG_CLI_BUILD_NUMBER)
+      allowFailBuild: false
+      vuln: true
+
+  - task: JfrogCliV2@1
+    displayName: Secrets scan
+    continueOnError: true
+    inputs:
+      jfrogPlatformConnection: jfrog-mwldn
+      command: >
+        jf audit --secrets --format simple-json 2>/dev/null |
+        jq '{secrets: [.secrets[]? | {severity, ruleId, file, startLine, endLine, finding}], scansStatus: .scansStatus}'
+        > secrets-scan.json
+
+  - task: JfrogCliV2@1
+    displayName: Curation audit
+    continueOnError: true
+    inputs:
+      jfrogPlatformConnection: jfrog-mwldn
+      command: >
+        RAW=$(jf curation-audit --format json 2>/dev/null | sed -n '/^\[/,$ p');
+        [ -z "$RAW" ] && RAW='[]';
+        echo "{\"blocked_packages\": ${RAW}}" > curation-audit.json
+
+  - script: |
+      JF_HOST="${JF_URL#https://}"
+      JF_HOST="${JF_HOST#http://}"
+      JF_HOST="${JF_HOST%/}"
+      SHORT_SHA=$(echo "$(Build.SourceVersion)" | cut -c1-7)
+      DOCKER_TAG="${JF_HOST}/$(JF_DOCKER_REPOSITORY)/frogstatus:${SHORT_SHA}"
+      echo "##vso[task.setvariable variable=DOCKER_TAG]${DOCKER_TAG}"
+      echo "##vso[task.setvariable variable=MANIFEST_PATH]$(JF_DOCKER_REPOSITORY)/frogstatus/${SHORT_SHA}/manifest.json"
+    displayName: Build Docker image tag
+
+  - script: |
+      docker build -f infra/Dockerfile \
+        --build-arg JF_URL="$(JF_URL)" \
+        --build-arg JF_NPM_REPOSITORY="$(JF_NPM_REPOSITORY)" \
+        --secret id=jfrog_config,src=$HOME/.jfrog/jfrog-cli.conf.v6 \
+        -t $(DOCKER_TAG) .
+    displayName: Build Docker image
+    env:
+      DOCKER_BUILDKIT: 1
+
+  - task: JFrogDocker@1
+    displayName: Push Docker image
+    inputs:
+      command: push
+      artifactoryConnection: jfrog-mwldn
+      imageName: $(DOCKER_TAG)
+      collectBuildInfo: true
+      buildName: $(JFROG_CLI_BUILD_NAME)
+      buildNumber: $(JFROG_CLI_BUILD_NUMBER)
+
+  - task: JfrogCliV2@1
+    displayName: Upload secrets scan evidence
+    continueOnError: true
+    inputs:
+      jfrogPlatformConnection: jfrog-mwldn
+      command: >
+        jf evd create
+        --predicate secrets-scan.json
+        --predicate-type "https://jfrog.com/evidence/secret-detection/v1"
+        --subject-repo-path "$(MANIFEST_PATH)"
+        --project "$(JF_PROJECT_KEY)"
+    env:
+      JFROG_CLI_SIGNING_KEY: $(JF_EVD_SIGNING_KEY)
+      JFROG_CLI_KEY_ALIAS: $(JF_EVD_KEY_ALIAS)
+
+  - task: JfrogCliV2@1
+    displayName: Upload curation audit evidence
+    continueOnError: true
+    inputs:
+      jfrogPlatformConnection: jfrog-mwldn
+      command: >
+        jf evd create
+        --predicate curation-audit.json
+        --predicate-type "https://jfrog.com/evidence/curation-audit/v1"
+        --subject-repo-path "$(MANIFEST_PATH)"
+        --project "$(JF_PROJECT_KEY)"
+    env:
+      JFROG_CLI_SIGNING_KEY: $(JF_EVD_SIGNING_KEY)
+      JFROG_CLI_KEY_ALIAS: $(JF_EVD_KEY_ALIAS)
+
+  - task: JFrogDocker@1
+    displayName: Scan Docker image
+    inputs:
+      command: scan
+      xrayConnection: jfrog-mwldn
+      imageName: $(DOCKER_TAG)
+      allowFailBuild: false

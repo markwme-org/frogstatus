@@ -56,7 +56,9 @@ steps:
     continueOnError: true
     inputs:
       jfrogPlatformConnection: jfrog-mwldn
-      command: jf audit . --project $(JF_PROJECT_KEY) --vuln
+      command: |
+        jf npmc --global=true --repo-resolve=$(JF_NPM_REPOSITORY)
+        jf audit . --project $(JF_PROJECT_KEY) --vuln
 
   - script: rm -f package-lock.json
     displayName: Remove lock file to force resolution via Artifactory

@@ -73,25 +73,23 @@ steps:
       allowFailBuild: false
       vuln: true
 
-  - task: JfrogCliV2@1
+  - script: |
+      jf audit --secrets --format simple-json 2>/dev/null | \
+        jq '{secrets: [.secrets[]? | {severity, ruleId, file, startLine, endLine, finding}], scansStatus: .scansStatus}' \
+        > secrets-scan.json
+      jq -e 'has("secrets")' secrets-scan.json >/dev/null
+      echo "Secrets found: $(jq '.secrets | length' secrets-scan.json)"
     displayName: Secrets scan
     continueOnError: true
-    inputs:
-      jfrogPlatformConnection: jfrog-mwldn
-      command: >
-        jf audit --secrets --format simple-json 2>/dev/null |
-        jq '{secrets: [.secrets[]? | {severity, ruleId, file, startLine, endLine, finding}], scansStatus: .scansStatus}'
-        > secrets-scan.json
 
-  - task: JfrogCliV2@1
+  - script: |
+      RAW=$(jf curation-audit --format json 2>/dev/null | sed -n '/^\[/,$ p')
+      [ -z "$RAW" ] && RAW='[]'
+      echo "{\"blocked_packages\": ${RAW}}" > curation-audit.json
+      jq -e '.blocked_packages | type == "array"' curation-audit.json >/dev/null
+      echo "Blocked packages: $(jq '.blocked_packages | length' curation-audit.json)"
     displayName: Curation audit
     continueOnError: true
-    inputs:
-      jfrogPlatformConnection: jfrog-mwldn
-      command: >
-        RAW=$(jf curation-audit --format json 2>/dev/null | sed -n '/^\[/,$ p');
-        [ -z "$RAW" ] && RAW='[]';
-        echo "{\"blocked_packages\": ${RAW}}" > curation-audit.json
 
   - script: |
       JF_HOST="${JF_URL#https://}"

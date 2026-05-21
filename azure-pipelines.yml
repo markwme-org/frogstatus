@@ -46,13 +46,20 @@ steps:
         jf curation-audit
 
   - task: JFrogAudit@1
-    displayName: Xray audit
+    displayName: Xray audit (task)
     continueOnError: true
     inputs:
       xrayConnection: jfrog-mwldn-xray
       watchesSource: project
       project: $(JF_PROJECT_KEY)
       allowFailBuild: false
+
+  - task: JfrogCliV2@1
+    displayName: Xray audit (CLI)
+    continueOnError: true
+    inputs:
+      jfrogPlatformConnection: jfrog-mwldn
+      command: jf audit . --project $(JF_PROJECT_KEY) --vuln
 
   - task: JFrogNpm@1
     displayName: Install dependencies

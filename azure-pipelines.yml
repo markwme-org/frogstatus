@@ -42,17 +42,8 @@ steps:
         jf npmc --global=true --repo-resolve=$(JF_NPM_REPOSITORY)
         jf curation-audit
 
-  - task: JFrogAudit@1
-    displayName: Xray audit (task)
-    continueOnError: true
-    inputs:
-      xrayConnection: jfrog-mwldn-xray
-      watchesSource: project
-      project: $(JF_PROJECT_KEY)
-      allowFailBuild: false
-
   - task: JfrogCliV2@1
-    displayName: Xray audit (CLI)
+    displayName: Xray audit
     continueOnError: true
     inputs:
       jfrogPlatformConnection: jfrog-mwldn

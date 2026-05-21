@@ -40,4 +40,3 @@ coverage/
 .npmrc
 # Claude Code
 .claude/
-package-lock.json

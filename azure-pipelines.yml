@@ -50,8 +50,8 @@ steps:
     continueOnError: true
     inputs:
       xrayConnection: jfrog-mwldn-xray
-      projectKey: $(JF_PROJECT_KEY)
-      vuln: true
+      watchesSource: project
+      project: $(JF_PROJECT_KEY)
       allowFailBuild: false
 
   - task: JFrogNpm@1

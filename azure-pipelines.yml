@@ -43,7 +43,7 @@ steps:
       jfrogPlatformConnection: jfrog-mwldn
       command: |
         jf npmc --global=true --repo-resolve=$(JF_NPM_REPOSITORY)
-        jf curation-audit
+        jf curation-audit --fail=true
 
   - task: JFrogNpm@1
     displayName: Install dependencies

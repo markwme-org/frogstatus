@@ -121,6 +121,12 @@ steps:
       jfrogPlatformConnection: jfrog-mwldn
       command: jf docker push $(DOCKER_TAG)
 
+  - task: DownloadSecureFile@1
+    name: signingKey
+    displayName: Download signing key
+    inputs:
+      secureFile: markw-jfrog-private-key
+
   - task: JfrogCliV2@1
     displayName: Upload secrets scan evidence
     continueOnError: true
@@ -132,9 +138,8 @@ steps:
         --predicate-type "https://jfrog.com/evidence/secret-detection/v1"
         --subject-repo-path "$(MANIFEST_PATH)"
         --project "$(JF_PROJECT_KEY)"
-    env:
-      JFROG_CLI_SIGNING_KEY: $(JF_EVD_SIGNING_KEY)
-      JFROG_CLI_KEY_ALIAS: $(JF_EVD_KEY_ALIAS)
+        --key $(signingKey.secureFilePath)
+        --key-alias $(JF_EVD_KEY_ALIAS)
 
   - task: JfrogCliV2@1
     displayName: Upload curation audit evidence
@@ -147,9 +152,8 @@ steps:
         --predicate-type "https://jfrog.com/evidence/curation-audit/v1"
         --subject-repo-path "$(MANIFEST_PATH)"
         --project "$(JF_PROJECT_KEY)"
-    env:
-      JFROG_CLI_SIGNING_KEY: $(JF_EVD_SIGNING_KEY)
-      JFROG_CLI_KEY_ALIAS: $(JF_EVD_KEY_ALIAS)
+        --key $(signingKey.secureFilePath)
+        --key-alias $(JF_EVD_KEY_ALIAS)
 
   - task: JfrogCliV2@1
     displayName: Scan Docker image

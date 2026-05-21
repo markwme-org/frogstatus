@@ -99,6 +99,7 @@ steps:
       DOCKER_TAG="${JF_HOST}/$(JF_DOCKER_REPOSITORY)/frogstatus:${SHORT_SHA}"
       echo "##vso[task.setvariable variable=DOCKER_TAG]${DOCKER_TAG}"
       echo "##vso[task.setvariable variable=MANIFEST_PATH]$(JF_DOCKER_REPOSITORY)/frogstatus/${SHORT_SHA}/manifest.json"
+      echo "##vso[task.setvariable variable=AGENT_HOME]$HOME"
     displayName: Build Docker image tag
 
   - task: JfrogCliV2@1
@@ -109,20 +110,16 @@ steps:
         jf docker build -f infra/Dockerfile
         --build-arg JF_URL="$(JF_URL)"
         --build-arg JF_NPM_REPOSITORY="$(JF_NPM_REPOSITORY)"
-        --secret id=jfrog_config,src=$(HOME)/.jfrog/jfrog-cli.conf.v6
+        --secret id=jfrog_config,src=$(AGENT_HOME)/.jfrog/jfrog-cli.conf.v6
         -t $(DOCKER_TAG) .
     env:
       DOCKER_BUILDKIT: 1
 
-  - task: JFrogDocker@1
+  - task: JfrogCliV2@1
     displayName: Push Docker image
     inputs:
-      command: push
-      artifactoryConnection: jfrog-mwldn-artifactory
-      imageName: $(DOCKER_TAG)
-      collectBuildInfo: true
-      buildName: $(JFROG_CLI_BUILD_NAME)
-      buildNumber: $(JFROG_CLI_BUILD_NUMBER)
+      jfrogPlatformConnection: jfrog-mwldn
+      command: jf docker push $(DOCKER_TAG)
 
   - task: JfrogCliV2@1
     displayName: Upload secrets scan evidence

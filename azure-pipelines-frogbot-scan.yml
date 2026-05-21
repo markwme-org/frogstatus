@@ -29,6 +29,7 @@ jobs:
           JF_GIT_API_ENDPOINT: $(System.CollectionUri)
           JF_GIT_OWNER: $(System.TeamProject)
           JF_GIT_REPO: $(Build.Repository.Name)
+          JFROG_CLI_LOG_LEVEL: DEBUG
         inputs:
           script: |
             curl -fL "https://releases.jfrog.io/artifactory/frogbot/v3/$(FROGBOT_VERSION)/getFrogbot.sh" | sh

@@ -34,6 +34,9 @@ steps:
       jfrogPlatformConnection: jfrog-mwldn
       command: jf rt ping
 
+  - script: rm -f package-lock.json
+    displayName: Remove lock file to force resolution via Artifactory
+
   - task: JFrogNpm@1
     displayName: Install dependencies
     inputs:

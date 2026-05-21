@@ -25,6 +25,7 @@ jobs:
           JF_URL: $(JF_URL)
           JF_ACCESS_TOKEN: $(JF_ACCESS_TOKEN)
           JF_GIT_TOKEN: $(System.AccessToken)
+          JF_PROJECT_KEY: $(JF_PROJECT_KEY)
           JF_GIT_PROVIDER: azureRepos
           JF_GIT_OWNER: $(System.TeamProject)
           JF_GIT_REPO: $(Build.Repository.Name)

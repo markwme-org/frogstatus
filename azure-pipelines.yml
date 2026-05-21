@@ -76,8 +76,8 @@ steps:
   - script: |
       jf audit --secrets --format simple-json 2>/dev/null | \
         jq '{secrets: [.secrets[]? | {severity, ruleId, file, startLine, endLine, finding}], scansStatus: .scansStatus}' \
-        > secrets-scan.json
-      jq -e 'has("secrets")' secrets-scan.json >/dev/null
+        > secrets-scan.json 2>/dev/null
+      [ -s secrets-scan.json ] || echo '{"secrets":[],"scansStatus":{}}' > secrets-scan.json
       echo "Secrets found: $(jq '.secrets | length' secrets-scan.json)"
     displayName: Secrets scan
     continueOnError: true

@@ -45,12 +45,14 @@ steps:
         jf npmc --global=true --repo-resolve=$(JF_NPM_REPOSITORY)
         jf curation-audit
 
-  - task: JfrogCliV2@1
+  - task: JFrogAudit@1
     displayName: Xray audit
     continueOnError: true
     inputs:
-      jfrogPlatformConnection: jfrog-mwldn
-      command: jf audit . --project $(JF_PROJECT_KEY) --vuln
+      xrayConnection: jfrog-mwldn-xray
+      projectKey: $(JF_PROJECT_KEY)
+      vuln: true
+      allowFailBuild: false
 
   - task: JFrogNpm@1
     displayName: Install dependencies

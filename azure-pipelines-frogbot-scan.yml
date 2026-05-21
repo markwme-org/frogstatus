@@ -1,6 +1,3 @@
-# Frogbot Scan Repository - Azure DevOps Pipeline
-# Triggered on schedule to scan the repository for vulnerabilities
-
 schedules:
   - cron: '0 0 * * *'
     displayName: Daily midnight scan
@@ -8,7 +5,6 @@ schedules:
       include:
         - main
 
-# Disable PR and push triggers - this pipeline is for scheduled scans only
 pr: none
 trigger: none
 
@@ -16,25 +12,16 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  # [Mandatory] Set these in Azure DevOps: Pipelines > Library > Variable Groups
-  # or Pipeline > Edit > Variables
-  JF_URL: $(JF_URL)
-  JF_ACCESS_TOKEN: $(JF_ACCESS_TOKEN)
-  JF_GIT_TOKEN: $(JF_GIT_TOKEN)
-  
-  # [Mandatory] Azure DevOps organization or project name
-  JF_GIT_OWNER: 'markwme'
-  
-  # [Mandatory if NOT using Azure Repos]
-  # JF_GIT_PROVIDER: '<YOUR_GIT_PROVIDER>'
-  # JF_GIT_API_ENDPOINT: '<YOUR_API_ENDPOINT>'
+  - group: jfrog-config
+  - name: JF_GIT_OWNER
+    value: markwme
 
 jobs:
   - job: FrogbotScanRepository
-    displayName: 'Frogbot Scan Repository'
+    displayName: Frogbot Scan Repository
     steps:
       - task: CmdLine@2
-        displayName: 'Download and Run Frogbot'
+        displayName: Download and Run Frogbot
         env:
           JF_URL: $(JF_URL)
           JF_ACCESS_TOKEN: $(JF_ACCESS_TOKEN)

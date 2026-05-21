@@ -18,7 +18,7 @@ jobs:
       - checkout: self
 
       - script: |
-          curl -fL "https://releases.jfrog.io/artifactory/frogbot/v3/[RELEASE]/getFrogbot.sh" | sh
+          curl -fL "https://releases.jfrog.io/artifactory/frogbot/v3/$(FROGBOT_VERSION)/getFrogbot.sh" | sh
           ./frogbot scan-pull-request
         displayName: Run Frogbot PR scan
         env:

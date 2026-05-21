@@ -1,0 +1,5 @@
+version: 2
+scan:
+  - workingDirs:
+      - "."
+    installCommand: "npm install --package-lock-only"

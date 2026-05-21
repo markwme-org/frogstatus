@@ -41,7 +41,9 @@ steps:
     displayName: Curation audit
     inputs:
       jfrogPlatformConnection: jfrog-mwldn
-      command: jf curation-audit
+      command: |
+        jf npmc --global=true --repo-resolve=$(JF_NPM_REPOSITORY)
+        jf curation-audit
 
   - task: JFrogNpm@1
     displayName: Install dependencies

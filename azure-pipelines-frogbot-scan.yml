@@ -18,6 +18,8 @@ jobs:
   - job: FrogbotScanRepository
     displayName: Frogbot Scan Repository
     steps:
+      - checkout: none
+
       - task: CmdLine@2
         displayName: Download and Run Frogbot
         env:

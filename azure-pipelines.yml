@@ -101,12 +101,16 @@ steps:
       echo "##vso[task.setvariable variable=MANIFEST_PATH]$(JF_DOCKER_REPOSITORY)/frogstatus/${SHORT_SHA}/manifest.json"
     displayName: Build Docker image tag
 
-  - script: |
-      docker build -f infra/Dockerfile \
-        --build-arg JF_URL="$(JF_URL)" \
-        --build-arg JF_NPM_REPOSITORY="$(JF_NPM_REPOSITORY)" \
-        -t $(DOCKER_TAG) .
+  - task: JfrogCliV2@1
     displayName: Build Docker image
+    inputs:
+      jfrogPlatformConnection: jfrog-mwldn
+      command: >
+        jf docker build -f infra/Dockerfile
+        --build-arg JF_URL="$(JF_URL)"
+        --build-arg JF_NPM_REPOSITORY="$(JF_NPM_REPOSITORY)"
+        --secret id=jfrog_config,src=$(HOME)/.jfrog/jfrog-cli.conf.v6
+        -t $(DOCKER_TAG) .
     env:
       DOCKER_BUILDKIT: 1
 

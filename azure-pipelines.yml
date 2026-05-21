@@ -151,10 +151,8 @@ steps:
       JFROG_CLI_SIGNING_KEY: $(JF_EVD_SIGNING_KEY)
       JFROG_CLI_KEY_ALIAS: $(JF_EVD_KEY_ALIAS)
 
-  - task: JFrogDocker@1
+  - task: JfrogCliV2@1
     displayName: Scan Docker image
     inputs:
-      command: scan
-      xrayConnection: jfrog-mwldn-xray
-      imageName: $(DOCKER_TAG)
-      allowFailBuild: false
+      jfrogPlatformConnection: jfrog-mwldn
+      command: jf docker scan $(DOCKER_TAG) --vuln --fail=false

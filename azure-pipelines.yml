@@ -91,31 +91,12 @@ steps:
       vuln: true
 
   - script: |
-      jf audit --secrets --format simple-json 2>/dev/null | \
-        jq '{secrets: [.secrets[]? | {severity, ruleId, file, startLine, endLine, finding}], scansStatus: .scansStatus}' \
-        > secrets-scan.json 2>/dev/null
-      [ -s secrets-scan.json ] || echo '{"secrets":[],"scansStatus":{}}' > secrets-scan.json
-      echo "Secrets found: $(jq '.secrets | length' secrets-scan.json)"
-    displayName: Secrets scan
-    continueOnError: true
-
-  - script: |
-      RAW=$(jf curation-audit --format json 2>/dev/null | sed -n '/^\[/,$ p')
-      [ -z "$RAW" ] && RAW='[]'
-      echo "{\"blocked_packages\": ${RAW}}" > curation-audit.json
-      jq -e '.blocked_packages | type == "array"' curation-audit.json >/dev/null
-      echo "Blocked packages: $(jq '.blocked_packages | length' curation-audit.json)"
-    displayName: Curation audit
-    continueOnError: true
-
-  - script: |
       JF_HOST="${JF_URL#https://}"
       JF_HOST="${JF_HOST#http://}"
       JF_HOST="${JF_HOST%/}"
       SHORT_SHA=$(echo "$(Build.SourceVersion)" | cut -c1-7)
       DOCKER_TAG="${JF_HOST}/$(JF_DOCKER_REPOSITORY)/frogstatus:${SHORT_SHA}"
       echo "##vso[task.setvariable variable=DOCKER_TAG]${DOCKER_TAG}"
-      echo "##vso[task.setvariable variable=MANIFEST_PATH]$(JF_DOCKER_REPOSITORY)/frogstatus/${SHORT_SHA}/manifest.json"
       echo "##vso[task.setvariable variable=AGENT_HOME]$HOME"
     displayName: Build Docker image tag
 
@@ -137,40 +118,6 @@ steps:
     inputs:
       jfrogPlatformConnection: jfrog-mwldn
       command: jf docker push $(DOCKER_TAG)
-
-  - task: DownloadSecureFile@1
-    name: signingKey
-    displayName: Download signing key
-    inputs:
-      secureFile: markw-jfrog-private-key
-
-  - task: JfrogCliV2@1
-    displayName: Upload secrets scan evidence
-    continueOnError: true
-    inputs:
-      jfrogPlatformConnection: jfrog-mwldn
-      command: >
-        jf evd create
-        --predicate secrets-scan.json
-        --predicate-type "https://jfrog.com/evidence/secret-detection/v1"
-        --subject-repo-path "$(MANIFEST_PATH)"
-        --project "$(JF_PROJECT_KEY)"
-        --key $(signingKey.secureFilePath)
-        --key-alias $(JF_EVD_KEY_ALIAS)
-
-  - task: JfrogCliV2@1
-    displayName: Upload curation audit evidence
-    continueOnError: true
-    inputs:
-      jfrogPlatformConnection: jfrog-mwldn
-      command: >
-        jf evd create
-        --predicate curation-audit.json
-        --predicate-type "https://jfrog.com/evidence/curation-audit/v1"
-        --subject-repo-path "$(MANIFEST_PATH)"
-        --project "$(JF_PROJECT_KEY)"
-        --key $(signingKey.secureFilePath)
-        --key-alias $(JF_EVD_KEY_ALIAS)
 
   - task: JfrogCliV2@1
     displayName: Scan Docker image

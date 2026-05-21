@@ -13,8 +13,6 @@ pool:
 
 variables:
   - group: jfrog-config
-  - name: JF_GIT_OWNER
-    value: markwme
 
 jobs:
   - job: FrogbotScanRepository
@@ -26,7 +24,9 @@ jobs:
           JF_URL: $(JF_URL)
           JF_ACCESS_TOKEN: $(JF_ACCESS_TOKEN)
           JF_GIT_TOKEN: $(JF_GIT_TOKEN)
-          JF_GIT_OWNER: $(JF_GIT_OWNER)
+          JF_GIT_API_ENDPOINT: $(System.CollectionUri)
+          JF_GIT_OWNER: $(System.TeamProject)
+          JF_GIT_REPO: $(Build.Repository.Name)
         inputs:
           script: |
             curl -fL "https://releases.jfrog.io/artifactory/frogbot/v3/$(FROGBOT_VERSION)/getFrogbot.sh" | sh

@@ -29,20 +29,21 @@ if [[ "$UPSTREAM" != "origin/main" ]]; then
   exit 1
 fi
 
-npm run set-vulnerable:no-install --silent
-npm install --registry https://registry.npmjs.org --silent
+npm run set-vulnerable:no-install > /dev/null 2>&1
+npm install --registry https://registry.npmjs.org --silent 2>/dev/null
 
-"$SCRIPT_DIR/demo-cleanup-pr.sh" 2>/dev/null || true
-"$SCRIPT_DIR/demo-cleanup-pr-azdo.sh" 2>/dev/null || true
+"$SCRIPT_DIR/demo-cleanup-pr.sh" > /dev/null 2>&1 || true
+"$SCRIPT_DIR/demo-cleanup-pr-azdo.sh" > /dev/null 2>&1 || true
 
 if [[ "$PUSH" == true ]]; then
   git add package.json package-lock.json
   git diff --cached --quiet || git commit -m "demo: switch to vulnerable dependencies" -q
 
-  git pull --rebase origin main -q
-  git push origin HEAD:main -q
+  git pull --rebase origin main -q 2>/dev/null
+  git push origin HEAD:main -q 2>/dev/null
 
   if git remote get-url azdo &>/dev/null; then
-    git push azdo HEAD:main -q
+    git pull --rebase azdo main -q 2>/dev/null
+    git push azdo HEAD:main -q 2>/dev/null
   fi
 fi

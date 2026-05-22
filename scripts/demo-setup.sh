@@ -40,6 +40,7 @@ npm install --registry https://registry.npmjs.org
 echo ""
 echo "▶ Cleaning up any leftover demo PRs..."
 "$SCRIPT_DIR/demo-cleanup-pr.sh" 2>/dev/null || true
+"$SCRIPT_DIR/demo-cleanup-pr-azdo.sh" 2>/dev/null || true
 
 if [[ "$PUSH" == true ]]; then
   echo ""
@@ -53,6 +54,12 @@ if [[ "$PUSH" == true ]]; then
   git pull --rebase origin main
 
   git push origin HEAD:main
+
+  if git remote get-url azdo &>/dev/null; then
+    echo ""
+    echo "▶ Pushing to AzDO..."
+    git push azdo HEAD:main
+  fi
 
   echo ""
   echo "▶ CI build triggered. Wait for it to fail, then start the demo."
@@ -68,5 +75,6 @@ echo "   2. Show JFrog VS Code extension highlighting vulnerabilities"
 echo "   3. Run: jf curation-audit"
 echo "   4. Run: jf audit --working-dirs '.'"
 echo "   5. Use Copilot + JFrog MCP to find safe versions"
-echo "   6. Run: ./scripts/demo-create-pr.sh  (Frogbot demo)"
+echo "   6. Run: ./scripts/demo-create-pr.sh          (GitHub Frogbot demo)"
+echo "       OR: ./scripts/demo-create-pr-azdo.sh     (AzDO Frogbot demo)"
 echo "   7. Run: npm run set-clean && git add -A && git commit && git push  (green build)"

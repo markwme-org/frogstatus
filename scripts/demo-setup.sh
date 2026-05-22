@@ -49,7 +49,6 @@ setup_platform() {
   "$SCRIPT_DIR/$cleanup" > /dev/null 2>&1 || true
 
   if [[ "$PUSH" == true ]] && git remote get-url "$remote" &>/dev/null; then
-    git pull --rebase "$remote" main -q 2>/dev/null
     git push "$remote" HEAD:main -q 2>/dev/null
   fi
 }

@@ -22,59 +22,27 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
 # Verify the local branch is set up to push to origin/main (required to trigger CI).
-# The demo branch is a local convenience branch; commits must land on main.
 UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)
 if [[ "$UPSTREAM" != "origin/main" ]]; then
-  echo "⚠  Error: expected upstream to be 'origin/main' but got '${UPSTREAM:-<none>}'."
-  echo "   Fix with: git branch --set-upstream-to=origin/main"
+  echo "Error: expected upstream to be 'origin/main' but got '${UPSTREAM:-<none>}'." >&2
+  echo "Fix with: git branch --set-upstream-to=origin/main" >&2
   exit 1
 fi
 
-echo "▶ Switching to vulnerable dependency state..."
-npm run set-vulnerable:no-install
+npm run set-vulnerable:no-install --silent
+npm install --registry https://registry.npmjs.org --silent
 
-echo ""
-echo "▶ Installing vulnerable packages directly from npmjs.org (bypassing curation)..."
-npm install --registry https://registry.npmjs.org
-
-echo ""
-echo "▶ Cleaning up any leftover demo PRs..."
 "$SCRIPT_DIR/demo-cleanup-pr.sh" 2>/dev/null || true
 "$SCRIPT_DIR/demo-cleanup-pr-azdo.sh" 2>/dev/null || true
 
 if [[ "$PUSH" == true ]]; then
-  echo ""
-  echo "▶ Committing and pushing to trigger CI failure..."
   git add package.json package-lock.json
-  git diff --cached --quiet && echo "  Nothing to commit (already in vulnerable state)" || \
-    git commit -m "demo: switch to vulnerable dependencies"
+  git diff --cached --quiet || git commit -m "demo: switch to vulnerable dependencies" -q
 
-  # Pull any remote changes before pushing to avoid non-fast-forward rejections.
-  # Use rebase to keep a linear history; preserve our local commit on top.
-  git pull --rebase origin main
-
-  git push origin HEAD:main
+  git pull --rebase origin main -q
+  git push origin HEAD:main -q
 
   if git remote get-url azdo &>/dev/null; then
-    echo ""
-    echo "▶ Pushing to AzDO..."
-    git push azdo HEAD:main
+    git push azdo HEAD:main -q
   fi
-
-  echo ""
-  echo "▶ CI build triggered. Wait for it to fail, then start the demo."
-  echo "   GitHub Actions: $(gh browse --no-browser 2>/dev/null)/actions"
 fi
-
-echo ""
-echo "▶ Demo setup complete."
-echo ""
-echo "   Demo flow:"
-echo "   1. Show the failed CI build + JFrog Job Summary"
-echo "   2. Show JFrog VS Code extension highlighting vulnerabilities"
-echo "   3. Run: jf curation-audit"
-echo "   4. Run: jf audit --working-dirs '.'"
-echo "   5. Use Copilot + JFrog MCP to find safe versions"
-echo "   6. Run: ./scripts/demo-create-pr.sh          (GitHub Frogbot demo)"
-echo "       OR: ./scripts/demo-create-pr-azdo.sh     (AzDO Frogbot demo)"
-echo "   7. Run: npm run set-clean && git add -A && git commit && git push  (green build)"

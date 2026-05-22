@@ -33,6 +33,9 @@ jobs:
       - uses: ./.github/actions/setup-jfrog-cli
       - run: jf -v && jf rt ping
 
+      - name: Sync lock file with package.json
+        run: npm install --package-lock-only --registry https://registry.npmjs.org
+
       - name: Install dependencies
         env:
           JF_NPM_REPOSITORY: ${{ vars.JF_NPM_REPOSITORY }}

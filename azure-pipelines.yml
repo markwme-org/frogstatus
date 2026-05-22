@@ -34,6 +34,9 @@ steps:
       jfrogPlatformConnection: jfrog-mwldn
       command: jf rt ping
 
+  - script: npm install --package-lock-only --registry https://registry.npmjs.org
+    displayName: Sync lock file with package.json
+
   - task: JfrogCliV2@1
     displayName: Curation audit
     inputs:

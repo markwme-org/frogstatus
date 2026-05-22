@@ -18,6 +18,12 @@ jobs:
       - checkout: self
 
       - script: |
+          echo "=== JF_ environment variables ==="
+          env | grep -i '^JF_' | sed 's/JF_ACCESS_TOKEN=.*/JF_ACCESS_TOKEN=[REDACTED]/'
+          echo "=================================="
+        displayName: Debug JF env vars
+
+      - script: |
           curl -fLg "https://releases.jfrog.io/artifactory/frogbot/v3/[RELEASE]/getFrogbot.sh" | sh
           ./frogbot scan-pull-request
         displayName: Run Frogbot PR scan
@@ -32,3 +38,4 @@ jobs:
           JF_GIT_REPO: $(Build.Repository.Name)
           JF_GIT_BASE_BRANCH: $(System.PullRequest.TargetBranch)
           JF_GIT_PULL_REQUEST_ID: $(System.PullRequest.PullRequestId)
+          JFROG_CLI_LOG_LEVEL: DEBUG

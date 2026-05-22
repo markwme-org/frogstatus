@@ -25,7 +25,6 @@ jobs:
           JF_URL: $(JF_URL)
           JF_ACCESS_TOKEN: $(JF_ACCESS_TOKEN)
           JF_GIT_TOKEN: $(System.AccessToken)
-          JF_WATCHES: frogstatus-watch
           JF_GIT_PROVIDER: azureRepos
           JF_GIT_API_ENDPOINT: $(System.CollectionUri)
           JF_GIT_OWNER: $(System.TeamProject)

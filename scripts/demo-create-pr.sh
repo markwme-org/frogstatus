@@ -1,13 +1,23 @@
 #!/bin/bash
-# Creates a demo PR that introduces a known-vulnerable dependency,
-# triggering Frogbot to scan and comment automatically.
+# Creates a demo PR introducing a vulnerable dependency to trigger Frogbot.
 #
-# This script is idempotent — it closes any existing demo PR and
-# recreates it from scratch so the demo is always in a clean state.
-#
-# Usage: ./scripts/demo-create-pr.sh
+# Usage: ./scripts/demo-create-pr.sh <platform>
+#   platform: github | azdo
 
 set -e
+
+PLATFORM=""
+for arg in "$@"; do
+  case "$arg" in
+    github|azdo) PLATFORM="$arg" ;;
+  esac
+done
+
+if [[ -z "$PLATFORM" ]]; then
+  echo "Usage: demo-create-pr.sh <platform>" >&2
+  echo "  platform: github | azdo" >&2
+  exit 1
+fi
 
 BRANCH="demo/vulnerable-dependency"
 BASE="main"
@@ -16,88 +26,83 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$REPO_ROOT"
 
-echo "▶ Checking gh CLI is authenticated..."
-gh auth status
+case "$PLATFORM" in
+  github) REMOTE="origin" ;;
+  azdo)   REMOTE="azdo" ;;
+esac
 
-echo ""
-echo "▶ Closing any existing demo PR for branch: $BRANCH"
-gh pr close "$BRANCH" --delete-branch 2>/dev/null || true
-git push origin --delete "$BRANCH" 2>/dev/null || true
-# Switch away first so we can delete the branch if we're currently on it
-if [[ "$(git symbolic-ref --short HEAD)" == "$BRANCH" ]]; then
-  git checkout -- package.json package-lock.json
-  git checkout main
+# Configure AzDO CLI defaults
+if [[ "$PLATFORM" == "azdo" ]]; then
+  REMOTE_URL=$(git remote get-url "$REMOTE")
+  AZDO_ORG=$(echo "$REMOTE_URL" | sed 's|https://dev.azure.com/||' | cut -d'/' -f1)
+  AZDO_PROJECT=$(echo "$REMOTE_URL" | sed 's|https://dev.azure.com/||' | cut -d'/' -f2)
+  AZDO_REPO=$(echo "$REMOTE_URL" | sed 's|https://dev.azure.com/||' | cut -d'/' -f4)
+  az devops configure --defaults organization="https://dev.azure.com/$AZDO_ORG" project="$AZDO_PROJECT" 2>/dev/null
 fi
+
+# Clean up any existing demo PR and branch
+if [[ "$PLATFORM" == "github" ]]; then
+  gh pr close "$BRANCH" --delete-branch 2>/dev/null || true
+elif [[ "$PLATFORM" == "azdo" ]]; then
+  EXISTING_PR=$(az repos pr list \
+    --repository "$AZDO_REPO" \
+    --source-branch "$BRANCH" \
+    --status active \
+    --query "[0].pullRequestId" \
+    --output tsv 2>/dev/null || true)
+  if [[ -n "$EXISTING_PR" && "$EXISTING_PR" != "None" ]]; then
+    az repos pr update --id "$EXISTING_PR" --status abandoned --output none
+  fi
+fi
+
+git push "$REMOTE" --delete "$BRANCH" 2>/dev/null || true
+[[ "$(git symbolic-ref --short HEAD)" == "$BRANCH" ]] && git checkout main -q
 git branch -D "$BRANCH" 2>/dev/null || true
 
-echo ""
-echo "▶ Creating branch from $BASE"
-git fetch origin "$BASE"
-git checkout -b "$BRANCH" "origin/$BASE"
+# Create branch from remote main
+git fetch "$REMOTE" "$BASE" -q
+git checkout -b "$BRANCH" "$REMOTE/$BASE" -q
 
-echo ""
-echo "▶ Introducing vulnerable dependency..."
-# Add express@4.17.1 — CVE-2022-24999 (CVSS 7.5, open redirect)
-# Not currently a dependency of frogstatus, so Frogbot always sees it as a new issue
-# regardless of whether main is in vulnerable or clean state.
+# Introduce vulnerable dependency
 node -e "
 const fs = require('fs');
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-pkg.dependencies = pkg.dependencies || {};
 pkg.dependencies['express'] = '4.17.1';
 fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-console.log('Added express@4.17.1 to package.json');
 "
+npm install --package-lock-only --registry https://registry.npmjs.org --silent 2>/dev/null
 
-echo ""
-echo "▶ Updating package-lock.json (required for Frogbot to resolve express)..."
-npm install --package-lock-only --registry https://registry.npmjs.org
-
-echo ""
-echo "▶ Committing..."
 git add package.json package-lock.json
 git commit -m "feat: add express for local API endpoint
 
 Adding express to expose build metrics via a local HTTP endpoint
-for integration with the monitoring dashboard."
+for integration with the monitoring dashboard." -q
 
-echo ""
-echo "▶ Pushing branch..."
-git push -u origin "$BRANCH"
+git push -u "$REMOTE" "$BRANCH" -q 2>/dev/null
 
-echo ""
-echo "▶ Creating pull request..."
-gh pr create \
-  --base "$BASE" \
-  --head "$BRANCH" \
-  --title "feat: add express for local API endpoint" \
-  --body "$(cat <<'EOF'
-## Summary
+# Create PR — outputs PR URL
+if [[ "$PLATFORM" == "github" ]]; then
+  gh pr create \
+    --base "$BASE" \
+    --head "$BRANCH" \
+    --title "feat: add express for local API endpoint" \
+    --body "Adding express to expose build metrics via a local HTTP endpoint.
 
-Adding express to expose build metrics via a local HTTP endpoint for integration with the monitoring dashboard.
+- Added \`express\` dependency to \`package.json\`"
+elif [[ "$PLATFORM" == "azdo" ]]; then
+  az repos pr create \
+    --repository "$AZDO_REPO" \
+    --source-branch "$BRANCH" \
+    --target-branch "$BASE" \
+    --title "feat: add express for local API endpoint" \
+    --description "## Summary
 
-## Changes
+Adding express to expose build metrics via a local HTTP endpoint.
 
-- Added `express` dependency to `package.json`
+- Added \`express\` dependency to \`package.json\`" \
+    --query "url" \
+    --output tsv
+fi
 
-## Testing
-
-- [ ] Unit tests pass
-- [ ] Integration tests pass
-EOF
-)"
-
-echo ""
-echo "▶ Done! Frogbot will scan the PR shortly."
-echo "   Watch for the Frogbot comment at the PR URL above."
-echo ""
-echo "   To clean up after the demo, run:"
-echo "   ./scripts/demo-cleanup-pr.sh"
-
-# Restore the operator's working branch (demo/vulnerable-dependency tracking origin/main).
-# We can't switch directly to it because it currently tracks origin/demo/vulnerable-dependency
-# (the PR branch), so we go via main and recreate it.
-git checkout main
-git pull --rebase origin main
+git checkout main -q
 git branch -D "$BRANCH" 2>/dev/null || true
-git checkout -b "$BRANCH" --track origin/main

@@ -20,9 +20,6 @@
     "lodash": "4.17.19",
     "node-forge": "0.10.0"
   },
-  "overrides": {
-    "semver": "7.8.0"
-  },
   "engines": {
     "node": ">=22.0.0"
   }

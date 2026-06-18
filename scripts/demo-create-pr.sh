@@ -70,9 +70,7 @@ const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 pkg.dependencies['express'] = '4.17.1';
 fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
 "
-npm install --package-lock-only --registry https://registry.npmjs.org --silent 2>/dev/null
-
-git add package.json package-lock.json
+git add package.json
 git commit -m "feat: add express for local API endpoint
 
 Adding express to expose build metrics via a local HTTP endpoint

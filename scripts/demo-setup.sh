@@ -38,7 +38,7 @@ npm run set-vulnerable:no-install > /dev/null 2>&1
 npm install --registry https://registry.npmjs.org --silent 2>/dev/null
 
 # Commit if there are changes
-git add package.json package-lock.json
+git add package.json
 git diff --cached --quiet || git commit -m "demo: switch to vulnerable dependencies" -q
 
 # Sync and push to a remote, and run its cleanup script

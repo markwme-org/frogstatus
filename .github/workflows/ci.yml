@@ -21,6 +21,7 @@ env:
 
 jobs:
   build-and-scan:
+    if: ${{ !startsWith(github.head_ref, 'frogbot-') }}
     runs-on: ubuntu-latest
 
     steps:

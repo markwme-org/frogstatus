@@ -144,7 +144,7 @@ jobs:
         run: |
           jf evd create \
             --predicate sbom.json \
-            --predicate-type "https://cyclonedx.org/bom" \
+            --predicate-type "https://cyclonedx.org/bom/v1.4" \
             --subject-repo-path "${{ steps.docker-push.outputs.manifest_path }}" \
             --project "$JF_PROJECT"
 

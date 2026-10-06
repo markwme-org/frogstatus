@@ -142,9 +142,22 @@ jobs:
           JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
           JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
         run: |
+          # Human-readable rendering for the evidence Content tab; the JSON stays in the Spec tab
+          jq -r '
+            "# Software Bill of Materials\n",
+            "**Format:** \(.bomFormat) \(.specVersion)  ",
+            "**Subject:** \(.metadata.component.name // "n/a") \(.metadata.component.version // "")  ",
+            "**Generated:** \(.metadata.timestamp // "n/a")  ",
+            "**Components:** \(.components | length)\n",
+            "| Component | Version | Type | Licence |",
+            "|---|---|---|---|",
+            (.components | sort_by(.name)[] |
+              "| \(.name | gsub("\\|"; "\\|")) | \(.version // "") | \(.type // "") | \(([.licenses[]? | .license.id // .license.name // .expression] | join(", ")) // "") |")
+          ' sbom.json > sbom.md
           jf evd create \
             --predicate sbom.json \
-            --predicate-type "https://cyclonedx.org/bom/v1.4" \
+            --predicate-type "https://cyclonedx.org/bom" \
+            --markdown sbom.md \
             --subject-repo-path "${{ steps.docker-push.outputs.manifest_path }}" \
             --project "$JF_PROJECT"
 

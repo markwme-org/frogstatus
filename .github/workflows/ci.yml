@@ -110,6 +110,44 @@ jobs:
           subject-name: oci://${{ steps.docker-tag.outputs.tag }}
           subject-digest: ${{ steps.docker-push.outputs.digest }}
 
+      - name: Extract SBOM from Xray
+        id: sbom
+        continue-on-error: true
+        run: |
+          TAG="${GITHUB_SHA::7}"
+          jq -n \
+            --arg name "frogstatus:${TAG}" \
+            --arg path "${{ steps.docker-push.outputs.manifest_path }}" \
+            '{package_type: "docker", component_name: $name, path: $path, cyclonedx: true, cyclonedx_format: "json"}' \
+            > sbom-request.json
+          # Xray indexes the image asynchronously after the push, so retry for a short while
+          for attempt in 1 2 3 4 5 6; do
+            if jf xr curl "api/v1/component/exportDetails" \
+                -X POST -H "Content-Type: application/json" \
+                -d "$(cat sbom-request.json)" -o sbom.zip \
+              && unzip -p sbom.zip > sbom.json \
+              && jq -e '.bomFormat == "CycloneDX"' sbom.json >/dev/null; then
+              echo "Components: $(jq '.components | length' sbom.json)"
+              exit 0
+            fi
+            echo "SBOM not ready (attempt ${attempt}/6), retrying in 30s"
+            sleep 30
+          done
+          exit 1
+
+      - name: Upload SBOM evidence
+        continue-on-error: true
+        if: steps.sbom.outcome == 'success'
+        env:
+          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
+          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
+        run: |
+          jf evd create \
+            --predicate sbom.json \
+            --predicate-type "https://cyclonedx.org/bom" \
+            --subject-repo-path "${{ steps.docker-push.outputs.manifest_path }}" \
+            --project "$JF_PROJECT"
+
       - name: Upload secrets scan evidence
         continue-on-error: true
         if: steps.secrets-scan.outcome == 'success'
@@ -133,19 +171,6 @@ jobs:
           jf evd create \
             --predicate curation-audit.json \
             --predicate-type "https://jfrog.com/evidence/curation-audit/v1" \
-            --subject-repo-path "${{ steps.docker-push.outputs.manifest_path }}" \
-            --project "$JF_PROJECT"
-
-      - name: Upload SonarQube evidence
-        continue-on-error: true
-        env:
-          JFROG_CLI_SIGNING_KEY: ${{ secrets.JF_EVD_SIGNING_KEY }}
-          JFROG_CLI_KEY_ALIAS: ${{ vars.JF_EVD_KEY_ALIAS }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-        run: |
-          jf evd create \
-            --integration sonar \
             --subject-repo-path "${{ steps.docker-push.outputs.manifest_path }}" \
             --project "$JF_PROJECT"
 

@@ -1,22 +1,25 @@
 'use strict';
-const axios = require('axios');
 const _ = require('lodash');
 const jwt = require('jsonwebtoken');
-const forge = require('node-forge');
 const https = require('https');
 const { URL } = require('url');
 
 /**
  * Creates a JFrog API client.
- * Uses axios for HTTP calls, lodash for data manipulation,
- * jsonwebtoken for token decoding, and node-forge for TLS cert inspection.
+ * Uses the built-in fetch for HTTP calls, lodash for data manipulation,
+ * jsonwebtoken for token decoding, and the built-in TLS socket for cert inspection.
  */
 function createClient(config) {
-  const http = axios.create({
-    baseURL: config.url,
-    headers: { Authorization: `Bearer ${config.accessToken}` },
-    timeout: 15000,
-  });
+  const http = {
+    async get(path) {
+      const res = await fetch(new URL(path, config.url), {
+        headers: { Authorization: `Bearer ${config.accessToken}` },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${path}`);
+      return { data: await res.json() };
+    },
+  };
 
   /**
    * Returns an array of build name strings from Artifactory.
@@ -75,7 +78,7 @@ function createClient(config) {
 
   /**
    * Fetches the TLS certificate from the JFrog host and returns
-   * { issuer, validTo } using node-forge. Returns null on failure.
+   * { issuer, validTo } from the TLS peer certificate. Returns null on failure.
    */
   function getCertInfo() {
     return new Promise(resolve => {
@@ -86,15 +89,10 @@ function createClient(config) {
           res => {
             try {
               const cert = res.socket.getPeerCertificate();
-              if (!cert || !cert.raw) return resolve(null);
-              const pem =
-                '-----BEGIN CERTIFICATE-----\n' +
-                Buffer.from(cert.raw).toString('base64').match(/.{1,64}/g).join('\n') +
-                '\n-----END CERTIFICATE-----';
-              const forgeCert = forge.pki.certificateFromPem(pem);
+              if (!cert || !cert.valid_to) return resolve(null);
               resolve({
-                issuer: forgeCert.issuer.getField('O')?.value || 'unknown',
-                validTo: forgeCert.validity.notAfter.toISOString().slice(0, 10),
+                issuer: cert.issuer?.O || 'unknown',
+                validTo: new Date(cert.valid_to).toISOString().slice(0, 10),
               });
             } catch {
               resolve(null);

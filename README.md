@@ -2,6 +2,8 @@
 
 A demo application for showcasing JFrog products in end-to-end demonstrations.
 
+V1.0
+
 ## Tech Stack
 
 - **Node.js**: 22.x

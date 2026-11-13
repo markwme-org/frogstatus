@@ -21,3 +21,4 @@ jobs:
           JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER }}
+          oidc-audience: ${{ vars.JF_OIDC_AUDIENCE }}

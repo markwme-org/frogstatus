@@ -27,3 +27,4 @@ jobs:
           JF_GIT_BASE_BRANCH: ${{ github.ref_name }}
         with:
           oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER }}
+          oidc-audience: ${{ vars.JF_OIDC_AUDIENCE }}

@@ -1,0 +1,35 @@
+name: Generate Demo Lock Files
+
+# Resolves the demo dependency sets on a clean runner and uploads the resulting
+# package-lock.json variants as an artefact. Download them with:
+#   gh run download <run-id> -n demo-locks -D scripts/locks
+#
+# Why a runner: resolving on a laptop behind a transparently redirecting proxy
+# bakes internal registry URLs into the lock file. This workflow uses
+# `npm install --package-lock-only`, so only metadata is fetched; nothing is
+# installed and no install scripts run.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+
+      - name: Generate lock files
+        run: node scripts/generate-locks.mjs "$RUNNER_TEMP/locks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: demo-locks
+          path: ${{ runner.temp }}/locks/*.json
+          if-no-files-found: error

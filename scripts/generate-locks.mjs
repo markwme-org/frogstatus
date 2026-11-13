@@ -27,16 +27,30 @@ const EXPRESS_VERSION = '4.17.1';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(scriptDir, '..');
-const outDir = resolve(process.argv[2] || join(scriptDir, 'locks'));
+// Usage: generate-locks.mjs [outDir] [--package-json <file>]
+//   --package-json <file>  resolve that package.json only and write it to
+//                          <outDir>/package-lock.json (used by refresh-lock.sh)
+const args = process.argv.slice(2);
+const pkgFlag = args.indexOf('--package-json');
+const customPkgPath = pkgFlag >= 0 ? resolve(args[pkgFlag + 1]) : null;
+if (pkgFlag >= 0) args.splice(pkgFlag, 2);
+const outDir = resolve(args[0] || join(scriptDir, 'locks'));
 
 const states = JSON.parse(readFileSync(join(scriptDir, 'dependency-states.json'), 'utf-8'));
 const basePkg = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf-8'));
 
-const variants = {
-  vulnerable: { ...states.vulnerable.dependencies },
-  clean: { ...states.clean.dependencies },
-  'vulnerable-express': { ...states.vulnerable.dependencies, express: EXPRESS_VERSION },
-};
+// Each variant is a full package.json plus the file name to write.
+const withDeps = (dependencies) => ({ ...basePkg, dependencies });
+const variants = customPkgPath
+  ? { current: { pkg: JSON.parse(readFileSync(customPkgPath, 'utf-8')), file: 'package-lock.json' } }
+  : {
+      vulnerable: { pkg: withDeps({ ...states.vulnerable.dependencies }), file: 'vulnerable.json' },
+      clean: { pkg: withDeps({ ...states.clean.dependencies }), file: 'clean.json' },
+      'vulnerable-express': {
+        pkg: withDeps({ ...states.vulnerable.dependencies, express: EXPRESS_VERSION }),
+        file: 'vulnerable-express.json',
+      },
+    };
 
 function checkResolvedHosts(lockPath, name) {
   const lock = JSON.parse(readFileSync(lockPath, 'utf-8'));
@@ -56,13 +70,12 @@ function checkResolvedHosts(lockPath, name) {
 
 mkdirSync(outDir, { recursive: true });
 
-for (const [name, dependencies] of Object.entries(variants)) {
+for (const [name, { pkg, file }] of Object.entries(variants)) {
   const work = mkdtempSync(join(tmpdir(), `lock-${name}-`));
   try {
-    const pkg = { ...basePkg, dependencies };
     writeFileSync(join(work, 'package.json'), JSON.stringify(pkg, null, 2) + '\n');
 
-    console.log(`\n▶ ${name}: resolving ${Object.keys(dependencies).length} direct dependencies`);
+    console.log(`\n▶ ${name}: resolving ${Object.keys(pkg.dependencies || {}).length} direct dependencies`);
     execFileSync(
       'npm',
       ['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund', '--registry', REGISTRY],
@@ -71,7 +84,7 @@ for (const [name, dependencies] of Object.entries(variants)) {
 
     const lockPath = join(work, 'package-lock.json');
     const count = checkResolvedHosts(lockPath, name);
-    copyFileSync(lockPath, join(outDir, `${name}.json`));
+    copyFileSync(lockPath, join(outDir, file));
     console.log(`✓ ${name}: ${count} packages, all resolved from ${ALLOWED_HOST}`);
   } finally {
     rmSync(work, { recursive: true, force: true });

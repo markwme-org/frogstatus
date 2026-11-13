@@ -27,3 +27,14 @@ gh run download <run-id> -n demo-locks -D scripts/locks
 If the PR's `express` version changes, update `EXPRESS_VERSION` in `scripts/generate-locks.mjs` and `scripts/demo-create-pr.sh` together.
 
 Then commit the `scripts/locks/` files, `package.json` and `package-lock.json` together. Never commit `package.json` without the matching lock file.
+
+### After fixing vulnerabilities live (for example through the JFrog MCP server)
+
+When dependency versions in `package.json` change outside the canned states, refresh the lock from whatever `package.json` currently says:
+
+```bash
+./scripts/refresh-lock.sh        # resolves on a runner, writes package-lock.json
+git add package.json package-lock.json
+```
+
+Do not hand-edit `package-lock.json` or run `npm install` locally. If the lock is stale, Frogbot's static SCA keeps reporting the old vulnerable versions even though CI (which reinstalls through Artifactory) builds clean.

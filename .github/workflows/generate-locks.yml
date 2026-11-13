@@ -11,6 +11,11 @@ name: Generate Demo Lock Files
 
 on:
   workflow_dispatch:
+    inputs:
+      package_json:
+        description: "Optional: full package.json text. If set, only that file is resolved and the artefact is named demo-lock-current (used by scripts/refresh-lock.sh)."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -25,11 +30,21 @@ jobs:
         with:
           node-version: 24.x
 
-      - name: Generate lock files
+      - name: Generate the three demo lock files
+        if: inputs.package_json == ''
         run: node scripts/generate-locks.mjs "$RUNNER_TEMP/locks"
+
+      - name: Generate a lock file for the supplied package.json
+        if: inputs.package_json != ''
+        env:
+          # Passed through the environment, never interpolated into the script.
+          PACKAGE_JSON: ${{ inputs.package_json }}
+        run: |
+          printf '%s' "$PACKAGE_JSON" > "$RUNNER_TEMP/supplied-package.json"
+          node scripts/generate-locks.mjs "$RUNNER_TEMP/locks" --package-json "$RUNNER_TEMP/supplied-package.json"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: demo-locks
+          name: ${{ inputs.package_json == '' && 'demo-locks' || 'demo-lock-current' }}
           path: ${{ runner.temp }}/locks/*.json
           if-no-files-found: error

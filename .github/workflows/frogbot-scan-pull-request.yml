@@ -22,6 +22,9 @@ jobs:
           JF_URL: ${{ secrets.JF_URL }}
           # JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
           JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Upload PR findings to GitHub Code Scanning (Frogbot 3.4+). Needs the
+          # security-events: write permission above.
+          JF_UPLOAD_PR_SECURITY_RESULTS_TO_VCS: "true"
         with:
           oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER }}
           oidc-audience: ${{ vars.JF_OIDC_AUDIENCE }}

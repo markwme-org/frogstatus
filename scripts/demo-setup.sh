@@ -33,12 +33,16 @@ if [[ "$(git symbolic-ref --short HEAD 2>/dev/null)" != "main" ]]; then
   exit 1
 fi
 
-# Switch to vulnerable state and install
-npm run set-vulnerable:no-install > /dev/null 2>&1
-npm install --registry https://registry.npmjs.org --silent 2>/dev/null
+# Clear any seeded secrets/SAST/IaC files left over from a previous local demo.
+# Run ./scripts/demo-seed.sh apply afterwards to stage them for the IDE section.
+"$SCRIPT_DIR/demo-seed.sh" remove > /dev/null
+
+# Switch to the vulnerable state. This also copies the canned lock file from
+# scripts/locks, so no packages are resolved locally.
+npm run set-vulnerable:no-install > /dev/null
 
 # Commit if there are changes
-git add package.json
+git add package.json package-lock.json
 git diff --cached --quiet || git commit -m "demo: switch to vulnerable dependencies" -q
 
 # Sync and push to a remote, and run its cleanup script

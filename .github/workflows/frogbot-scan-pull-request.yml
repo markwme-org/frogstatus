@@ -12,7 +12,10 @@ permissions:
 jobs:
   scan-pull-request:
     runs-on: ubuntu-latest
-    environment: frogbot
+    # pull_request_target exposes secrets to PR-triggered runs, so only scan PRs
+    # from branches in this repository (not forks). Only people with write access
+    # can create those, which replaces the manual approval gate used with Frogbot v2.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: jfrog/frogbot@v3
         env:

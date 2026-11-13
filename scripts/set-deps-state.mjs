@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
@@ -58,24 +58,35 @@ function main() {
   writeFileSync(rootPkgPath, JSON.stringify(pkg, null, 2) + '\n');
   console.log('✓ Updated package.json');
 
+  // Copy the canned lock file for this state. These are generated on a clean runner
+  // (see .github/workflows/generate-locks.yml), so no packages are resolved locally.
+  const cannedLock = join(__dirname, 'locks', `${targetState}.json`);
+  if (!existsSync(cannedLock)) {
+    console.error(`\n❌ Missing ${cannedLock}`);
+    console.error('Generate it with the "Generate Demo Lock Files" workflow:');
+    console.error('  gh workflow run generate-locks.yml');
+    console.error('  gh run download <run-id> -n demo-locks -D scripts/locks');
+    process.exit(1);
+  }
+  copyFileSync(cannedLock, join(rootDir, 'package-lock.json'));
+  console.log(`✓ Updated package-lock.json (scripts/locks/${targetState}.json)`);
+
   if (skipInstall) {
-    console.log('\n⏭️  Skipping install (--no-install). Run manually:');
-    console.log('  rm -rf node_modules package-lock.json');
-    console.log('  npm install\n');
+    console.log('\n⏭️  Skipping install (--no-install).');
     printStateInfo(targetState);
     return;
   }
 
-  console.log('\nReinstalling dependencies...');
+  console.log('\nReinstalling dependencies from the lock file...');
   console.log('This may take a moment...\n');
 
   try {
-    execSync('rm -rf node_modules package-lock.json', {
+    execSync('rm -rf node_modules', {
       cwd: rootDir,
       stdio: 'inherit',
     });
 
-    execSync('npm install', {
+    execSync('npm ci', {
       cwd: rootDir,
       stdio: 'inherit',
     });

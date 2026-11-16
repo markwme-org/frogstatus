@@ -33,9 +33,8 @@ if [[ "$(git symbolic-ref --short HEAD 2>/dev/null)" != "main" ]]; then
   exit 1
 fi
 
-# Clear any seeded secrets/SAST/IaC files left over from a previous local demo.
-# Run ./scripts/demo-seed.sh apply afterwards to stage them for the IDE section.
-"$SCRIPT_DIR/demo-seed.sh" remove > /dev/null
+# Remove any leftover PR-set seeds (untracked) from a previous run.
+"$SCRIPT_DIR/demo-seed.sh" remove pr > /dev/null
 
 # Switch to the vulnerable state. This also copies the canned lock file from
 # scripts/locks, so no packages are resolved locally.
@@ -45,6 +44,14 @@ npm run set-vulnerable:no-install > /dev/null
 git add package.json package-lock.json
 git diff --cached --quiet || git commit -m "demo: switch to vulnerable dependencies" -q
 
+# Baseline secrets, SAST and IaC issues live on main. CI builds them, Frogbot and the
+# IDE/CLI find them, and they stay as unfixed findings after the dependencies are
+# fixed. The PR scenario adds a different set (see demo-create-pr.sh).
+"$SCRIPT_DIR/demo-seed.sh" apply main > /dev/null
+# shellcheck disable=SC2046
+git add $("$SCRIPT_DIR/demo-seed.sh" list main)
+git diff --cached --quiet || git commit -m "demo: add baseline secrets, SAST and IaC issues" -q
+
 # Sync and push to a remote, and run its cleanup script
 setup_platform() {
   local remote="$1"
@@ -53,7 +60,7 @@ setup_platform() {
   "$SCRIPT_DIR/$cleanup" > /dev/null 2>&1 || true
 
   if [[ "$PUSH" == true ]] && git remote get-url "$remote" &>/dev/null; then
-    git push "$remote" HEAD:main -q 2>/dev/null
+    git push "$remote" HEAD:main -q
   fi
 }
 

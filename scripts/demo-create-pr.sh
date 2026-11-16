@@ -77,7 +77,7 @@ cleanup_on_failure() {
     echo "Script failed (exit $status). Returning to main and discarding local branch $BRANCH." >&2
     git checkout main -q
     git branch -D "$BRANCH" -q 2>/dev/null || true
-    "$SCRIPT_DIR/demo-seed.sh" remove >/dev/null 2>&1 || true
+    "$SCRIPT_DIR/demo-seed.sh" remove pr >/dev/null 2>&1 || true
   fi
 }
 trap cleanup_on_failure EXIT
@@ -100,19 +100,18 @@ for integration with the monitoring dashboard." -q
 
 SEED_NOTE=""
 if [[ "$SEEDS" == true ]]; then
-  # Second commit: health endpoints, a publish helper and infrastructure config.
-  # Any uncommitted local seeds are committed here and leave the working tree
-  # when we switch back to main.
-  "$SCRIPT_DIR/demo-seed.sh" apply
+  # Second commit: the "pr" seed set. These are different files from the baseline
+  # seeds already on main, so Frogbot reports them as new issues in the PR.
+  "$SCRIPT_DIR/demo-seed.sh" apply pr
   # shellcheck disable=SC2046
-  git add $("$SCRIPT_DIR/demo-seed.sh" list)
-  git commit -m "feat: add health endpoints, publish helper and infrastructure config
+  git add $("$SCRIPT_DIR/demo-seed.sh" list pr)
+  git commit -m "feat: add upload endpoints, notifier and storage config
 
-Adds a diagnostics API, a helper for publishing build status, a Terraform
-module for the artefact store and a Dockerfile for the debug image." -q
+Adds archive/filter/download endpoints, a notification helper and a
+Terraform module for the uploads bucket and reports database." -q
   SEED_NOTE="
-- Added health endpoints in \`src/health.js\`, a publish helper in \`src/publish.js\`
-- Added Terraform in \`infra/terraform\` and a Dockerfile in \`infra/docker\`"
+- Added upload endpoints in \`src/upload.js\` and a notifier in \`src/notify.js\`
+- Added Terraform in \`infra/terraform/storage.tf\`"
 fi
 
 # Pushing may be blocked by GitHub push protection if the seeded token is

@@ -2,17 +2,21 @@
 # Applies or removes the deliberately vulnerable "seed" files used to demonstrate
 # secrets, SAST and IaC detection.
 #
-# Usage: ./scripts/demo-seed.sh <command>
-#   apply   copy seed files into the working tree (uncommitted)
-#   remove  delete seed files from the working tree
+# Usage: ./scripts/demo-seed.sh <command> [set]
+#   apply   copy seed files into the working tree (overwrites tracked copies)
+#   remove  delete seed files from the working tree (untracked ones only)
 #   list    print the seed destination paths, one per line
 #   status  show which seed files are present
 #
-# Local scenario: run "apply" on main, leave the files uncommitted, then show the
-# IDE extension and "jf audit" finding them before anything is committed.
-# PR scenario: demo-create-pr.sh calls "apply" on the PR branch and commits them.
+# Sets (default: main):
+#   main  the baseline issues. demo-setup.sh commits these to main, so they are in
+#         the code CI builds and stay as unfixed findings after the dependencies
+#         are fixed.
+#   pr    different files and issues. demo-create-pr.sh commits these on the PR
+#         branch, so Frogbot reports them as new in the pull request.
+#   all   both sets (remove and list only)
 #
-# Seed templates live in scripts/demo-seeds/files as <path>.seed. The scanners
+# Seed templates live in scripts/demo-seeds/<set> as <path>.seed. The scanners
 # ignore the .seed suffix, so nothing is flagged until a seed is applied.
 # The revoked GitHub PAT and dummy DB password are read from
 # ~/.config/frogstatus-demo/secrets (outside the repo) or from the environment.
@@ -22,15 +26,23 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SEED_DIR="$SCRIPT_DIR/demo-seeds/files"
+SET="${2:-main}"
+SEED_ROOT="$SCRIPT_DIR/demo-seeds"
 SECRETS_FILE="${DEMO_SECRETS_FILE:-$HOME/.config/frogstatus-demo/secrets}"
 
 cd "$REPO_ROOT"
 
 # Print each seed's destination path relative to the repo root.
-seed_paths() {
-  (cd "$SEED_DIR" && find . -type f -name '*.seed' | sed 's|^\./||; s|\.seed$||' | sort)
+# Prints "<set> <path>" for every seed in the selected set(s).
+seed_entries() {
+  local set
+  for set in main pr; do
+    [[ "$SET" == "all" || "$SET" == "$set" ]] || continue
+    (cd "$SEED_ROOT/$set" && find . -type f -name '*.seed' | sed 's|^\./||; s|\.seed$||' | sort) | sed "s|^|$set |"
+  done
 }
+
+seed_paths() { seed_entries | cut -d' ' -f2; }
 
 load_secret() {
   local name="$1"
@@ -54,18 +66,14 @@ is_tracked() {
 
 cmd_apply() {
   load_secrets
-  local dest
-  while IFS= read -r dest; do
-    if is_tracked "$dest"; then
-      echo "  skip    $dest (already tracked by git)"
-      continue
-    fi
+  local set dest
+  while read -r set dest; do
     mkdir -p "$(dirname "$dest")"
     sed -e "s|__DEMO_GITHUB_TOKEN__|$DEMO_GITHUB_TOKEN|g" \
         -e "s|__DEMO_DB_PASSWORD__|$DEMO_DB_PASSWORD|g" \
-        "$SEED_DIR/$dest.seed" > "$dest"
+        "$SEED_ROOT/$set/$dest.seed" > "$dest"
     echo "  applied $dest"
-  done < <(seed_paths)
+  done < <(seed_entries)
 }
 
 cmd_remove() {

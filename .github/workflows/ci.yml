@@ -43,20 +43,6 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Publish build info
-        env:
-          # Suppress build-publish from writing to the Job Summary — build-scan
-          # writes its own combined entry (build info + security results), so
-          # leaving both would produce a duplicate row in the summary.
-          JFROG_CLI_COMMAND_SUMMARY_OUTPUT_DIR: ""
-        run: |
-          jf rt build-collect-env
-          jf rt build-add-git
-          jf rt build-publish
-
-      - name: Xray scan build
-        run: jf build-scan --project "$JF_PROJECT" --vuln --fail=false
-
       - name: Secrets, SAST and IaC scan
         id: secrets-scan
         continue-on-error: true
@@ -113,6 +99,22 @@ jobs:
           # Manifest path in JFrog: <repo>/<image>/<tag>/manifest.json
           IMAGE_PATH="${{ vars.JF_DOCKER_REPOSITORY }}/frogstatus/${GITHUB_SHA::7}/manifest.json"
           echo "manifest_path=${IMAGE_PATH}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish build info
+        # Runs after the image push so the Docker image is a module in the build info.
+        # Xray then scans it as part of the build (vulnerabilities and exposures).
+        env:
+          # Suppress build-publish from writing to the Job Summary — build-scan
+          # writes its own combined entry (build info + security results), so
+          # leaving both would produce a duplicate row in the summary.
+          JFROG_CLI_COMMAND_SUMMARY_OUTPUT_DIR: ""
+        run: |
+          jf rt build-collect-env
+          jf rt build-add-git
+          jf rt build-publish
+
+      - name: Xray scan build
+        run: jf build-scan --project "$JF_PROJECT" --vuln --fail=false
 
       - name: Attest build provenance
         id: attest

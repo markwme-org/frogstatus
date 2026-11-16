@@ -88,7 +88,9 @@ jobs:
           JF_NPM_REPOSITORY: ${{ vars.JF_NPM_REPOSITORY }}
           DOCKER_BUILDKIT: 1
         run: |
-          jf docker build -f infra/Dockerfile \
+          # --provenance=false: BuildKit's default attestation turns the tag into a manifest
+          # list, and the JFrog CLI then finds no layers to record in the build info.
+          jf docker build -f infra/Dockerfile --provenance=false \
             --build-arg JF_URL="${JF_URL}" \
             --build-arg JF_NPM_REPOSITORY="${JF_NPM_REPOSITORY}" \
             --secret id=jfrog_config,src=$HOME/.jfrog/jfrog-cli.conf.v6 \

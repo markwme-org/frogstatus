@@ -93,7 +93,11 @@ jobs:
             --build-arg JF_NPM_REPOSITORY="${JF_NPM_REPOSITORY}" \
             --secret id=jfrog_config,src=$HOME/.jfrog/jfrog-cli.conf.v6 \
             -t ${{ steps.docker-tag.outputs.tag }} .
-          jf docker push ${{ steps.docker-tag.outputs.tag }}
+          # Explicit build flags record the image as a module in the build info, so
+          # Xray scans it as part of the build.
+          jf docker push ${{ steps.docker-tag.outputs.tag }} \
+            --build-name "$JFROG_CLI_BUILD_NAME" --build-number "$JFROG_CLI_BUILD_NUMBER" \
+            --project "$JF_PROJECT" --module frogstatus-image
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${{ steps.docker-tag.outputs.tag }} | grep -oE 'sha256:[a-f0-9]+')
           echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
           # Manifest path in JFrog: <repo>/<image>/<tag>/manifest.json

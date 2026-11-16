@@ -7,12 +7,12 @@ resource "aws_s3_bucket" "uploads" {
 
 resource "aws_s3_bucket_acl" "uploads" {
   bucket = aws_s3_bucket.uploads.id
-  acl    = "public-read-write"
+  acl    = "public-read"
 }
 
 resource "aws_db_instance" "reports" {
   allocated_storage   = 20
-  engine              = "postgres"
+  engine              = "mysql"
   instance_class      = "db.t3.micro"
   publicly_accessible = true
   storage_encrypted   = false

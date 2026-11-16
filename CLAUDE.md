@@ -38,3 +38,14 @@ git add package.json package-lock.json
 ```
 
 Do not hand-edit `package-lock.json` or run `npm install` locally. If the lock is stale, Frogbot's static SCA keeps reporting the old vulnerable versions even though CI (which reinstalls through Artifactory) builds clean.
+
+## Demo seeds (secrets, SAST, IaC)
+
+`scripts/demo-seed.sh` manages two sets of deliberately insecure files, stored as `scripts/demo-seeds/<set>/<path>.seed`:
+
+| Set | Committed by | Purpose |
+|---|---|---|
+| `main` | `demo-setup.sh` (to `main`) | Baseline issues. CI builds them, Frogbot's commit scan and the IDE/CLI find them, and they stay as unfixed findings after the dependency fix. |
+| `pr` | `demo-create-pr.sh` (on the PR branch) | Different files, so Frogbot reports them as new issues in the PR. |
+
+The revoked PAT and dummy DB password come from `~/.config/frogstatus-demo/secrets` (outside the repo). Never commit that file. The live fix changes only `package.json` and `package-lock.json`; leave the seeds alone.

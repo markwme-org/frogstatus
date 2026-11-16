@@ -61,9 +61,10 @@ jobs:
         id: secrets-scan
         continue-on-error: true
         run: |
-          jf audit --secrets --format simple-json 2>/dev/null | \
-            jq '{secrets: [.secrets[]? | {severity, ruleId, file, startLine, endLine, finding}], scansStatus: .scansStatus}' \
-            > secrets-scan.json
+          # Keep stderr visible: a failed scan would otherwise look like "no secrets".
+          jf audit --secrets --format simple-json > secrets-raw.json || true
+          jq '{secrets: [.secrets[]? | {severity, ruleId, file, startLine, endLine, finding}], scansStatus: .scansStatus}' \
+            secrets-raw.json > secrets-scan.json
           jq -e 'has("secrets")' secrets-scan.json >/dev/null
           echo "Secrets found: $(jq '.secrets | length' secrets-scan.json)"
 

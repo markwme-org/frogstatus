@@ -57,14 +57,24 @@ jobs:
       - name: Xray scan build
         run: jf build-scan --project "$JF_PROJECT" --vuln --fail=false
 
-      - name: Secrets scan
+      - name: Secrets, SAST and IaC scan
         id: secrets-scan
         continue-on-error: true
         run: |
-          # Keep stderr visible: a failed scan would otherwise look like "no secrets".
-          jf audit --secrets --format simple-json > secrets-raw.json || true
+          # --vuln lists every finding. Without it, the git/project context on the runner
+          # switches jf audit to policy-violation mode and the findings arrays are empty.
+          # Stderr stays visible: a failed scan would otherwise look like "no secrets".
+          jf audit --secrets --sast --iac --vuln --format simple-json > audit-raw.json || true
           jq '{secrets: [.secrets[]? | {severity, ruleId, file, startLine, endLine, finding}], scansStatus: .scansStatus}' \
-            secrets-raw.json > secrets-scan.json
+            audit-raw.json > secrets-scan.json
+          {
+            echo "### Source code scan (secrets, SAST, IaC)"
+            echo "| Scanner | Findings |"
+            echo "|---|---|"
+            echo "| Secrets | $(jq '.secrets | length' audit-raw.json) |"
+            echo "| SAST | $(jq '.sast | length' audit-raw.json) |"
+            echo "| IaC | $(jq '.iac | length' audit-raw.json) |"
+          } >> "$GITHUB_STEP_SUMMARY"
           jq -e 'has("secrets")' secrets-scan.json >/dev/null
           echo "Secrets found: $(jq '.secrets | length' secrets-scan.json)"
 

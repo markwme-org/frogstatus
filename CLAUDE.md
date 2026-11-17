@@ -49,3 +49,7 @@ Do not hand-edit `package-lock.json` or run `npm install` locally. If the lock i
 | `pr` | `demo-create-pr.sh` (on the PR branch) | Different files, so Frogbot reports them as new issues in the PR. |
 
 The revoked PAT and dummy DB password come from `~/.config/frogstatus-demo/secrets` (outside the repo). Never commit that file. The live fix changes only `package.json` and `package-lock.json`; leave the seeds alone.
+
+## IDE scanner fix (Apple Silicon)
+
+If the JFrog VS Code extension's scan fails with `failed to find libmagic`, run `./scripts/fix-ide-scanner.sh` (use `--check` to test, `--restore` to undo). The extension's `jas_scanner` is x86_64 but loads an arm64-only `libmagic.dylib` from the CLI's folder. A JFrog CLI update can overwrite the fix, so re-run the script after one.

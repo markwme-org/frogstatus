@@ -53,3 +53,7 @@ The revoked PAT and dummy DB password come from `~/.config/frogstatus-demo/secre
 ## IDE scanner fix (Apple Silicon)
 
 If the JFrog VS Code extension's scan fails with `failed to find libmagic`, run `./scripts/fix-ide-scanner.sh` (use `--check` to test, `--restore` to undo). The extension's `jas_scanner` is x86_64 but loads an arm64-only `libmagic.dylib` from the CLI's folder. A JFrog CLI update can overwrite the fix, so re-run the script after one.
+
+## MCP governance demo (Agent Guard)
+
+The demo installs `com.microsoft/microsoft-learn-mcp` live through the JFrog Agent Guard (approved for project `fs` in the AI Catalogue), and shows `@modelcontextprotocol/server-sequential-thinking` being refused. `demo-setup.sh` calls `./scripts/demo-reset-mcp.sh`, which removes the Learn entry from `.mcp.json` and its approval from `.claude/settings.local.json`. It leaves the JFrog-side approval alone. Run setup before launching Claude Code, because a running session keeps the server loaded.

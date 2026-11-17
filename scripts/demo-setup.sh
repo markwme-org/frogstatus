@@ -36,6 +36,10 @@ fi
 # Remove any leftover PR-set seeds (untracked) from a previous run.
 "$SCRIPT_DIR/demo-seed.sh" remove pr > /dev/null
 
+# Uninstall the MCP server added during the Agent Guard part of the demo, so it can be
+# installed live again. Run this before launching Claude Code (see demo-reset-mcp.sh).
+"$SCRIPT_DIR/demo-reset-mcp.sh"
+
 # Switch to the vulnerable state. This also copies the canned lock file from
 # scripts/locks, so no packages are resolved locally.
 npm run set-vulnerable:no-install > /dev/null
